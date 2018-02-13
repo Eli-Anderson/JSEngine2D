@@ -199,18 +199,21 @@ class Vector3 extends Vector2 {
 		this.x += vector3.x
 		this.y += vector3.y
 		this.z += (vector3.z || 0)
+		return this
 	}
 
 	set (vector3) {
 		this.x = vector3.x
 		this.y = vector3.y
 		this.z = (vector3.z || this.z)
+		return this
 	}
 
 	sub (vector3) {
 		this.x -= vector3.x
 		this.y -= vector3.y
 		this.z -= (vector3.z || 0)
+		return this
 	}
 
 	mult (k) {
@@ -358,6 +361,16 @@ class Rect extends Vector2 {
 	}
 	get enabled () {
 		return this._enabled
+	}
+	get localPosition () {
+		return Vector3.SUB(this.transform, this.parent.transform)
+	}
+	get absolutePosition () {
+		return this.transform
+	}
+
+	set localPosition (position) {
+		this.moveTo(Vector3.ADD(this.parent.transform, position))
 	}
 
 	set transform (transform) {
@@ -619,6 +632,7 @@ class Rect extends Vector2 {
 		super(transform)
 		this._isUI = (isUI == undefined || isUI == true) ? true : false
 		this._class = PanelBase
+		this.drawBound = false
 	}
 	
 	get isUI () {
@@ -643,6 +657,12 @@ class Rect extends Vector2 {
 	}
 	set height (a) {
 		console.error ("Did you mean to call transform.height?")
+	}
+
+	drawBoundingBox (context, rect) {
+		context.fillStyle = 'black'
+		context.rect(rect.x, rect.y, rect.width, rect.height)
+		context.stroke()
 	}
 }class Panel extends PanelBase {
 	/* a basic panel consisting of a background Color */
@@ -704,7 +724,9 @@ class Rect extends Vector2 {
 			context.rotate(this.rotation)
 			context.translate(-(position.x+(this.transform.width/2)), -(position.y+(this.transform.height/2)))
 			context.fillRect(position.x, position.y, this.transform.width, this.transform.height)
-			
+			if (this.drawBound) {
+				this.drawBoundingBox(context, new Rect(position.x, position.y, this.transform.width, this.transform.height))
+			}
 			context.restore() // resets scale
 		}
 	}
@@ -729,7 +751,6 @@ class Rect extends Vector2 {
 		this.cropRect = cropRect || new Rect(0, 0, transform.width, transform.height)
 		this.scale = scale || new Vector2(1, 1)
 		this.rotation = rotation || 0
-		this.drawBound = false
 		this._class = PanelImage
 	}
 
@@ -803,9 +824,10 @@ class Rect extends Vector2 {
 			context.drawImage(this.image,
 				this.cropRect.x, this.cropRect.y, this.cropRect.width, this.cropRect.height,
 				position.x, position.y, this.transform.width, this.transform.height)
+			if (this.drawBound) {
+				this.drawBoundingBox(context, new Rect(position.x, position.y, this.transform.width, this.transform.height))
+			}
 			context.restore() // resets scale
-			if (this.drawBound)
-				context.strokeRect(position.x,position.y,this.transform.width,this.transform.height)
 		}
 	}
 }class Text extends PanelBase {
