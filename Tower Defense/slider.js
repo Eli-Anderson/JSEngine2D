@@ -53,10 +53,11 @@ class TowerSlider {
 	slide (dir) {
 		// -1 == slides right   1 == slides left
 		this.index += dir
+		var offset = (this.slider.transform.width - (this.offset*2)) / this.offset
 		if (this.index < 0)
 			this.index = 0
-		else if (this.index >= this.towers.length)
-			this.index = this.towers.length-1
+		else if (this.index + offset >= this.towers.length)
+			this.index = (this.towers.length - 1) - offset
 
 		for (const index in this.towers) {
 			this.towers[index].enabled = false

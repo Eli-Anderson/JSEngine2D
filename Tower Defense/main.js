@@ -8,7 +8,7 @@ const UI = 30
 class Game {
 	constructor () {
 		var _this = this
-		this._camera = new Camera (new Transform(0,0,0,840,496))
+		this._camera = new Camera (new Transform(0,0,0,868,496))
 		this._scene = new Scene()
 		this.map = new Map(23, 13)
 		this._paused = false
@@ -28,8 +28,12 @@ class Game {
 		this._selectedTower = null
 
 		this.hurtThisWave = false
-
-		this.pauseButton = new Button(new Transform(678,10,UI+4,32,32), new Color('black'), 0)
+		var pauseImg = new Image()
+		pauseImg.src = 'pause.png'
+		this.pauseButton = new ButtonImage(
+			new Transform(678,10,UI+4,32,32),
+			pauseImg
+		)
 		this.pauseButton.onClick = () => {_this.paused = !_this.paused}
 		this.scene.add(this.pauseButton)
 		
@@ -94,13 +98,49 @@ class Game {
 	}
 	set selectedTower (selectedTower) {
 		this._selectedTower = selectedTower
+		if (selectedTower != null) {
+			this.sideBarSelectedTowerText.text = selectedTower.constructor.tooltipText
+			this.sideBarSelectedTowerText.parent.enabled = true
+			this.sideBarSelectedTowerText.parent.transform.height = 32 +
+				(this.sideBarSelectedTowerText._lines.length * this.sideBarSelectedTowerText.font.size)
+		} else {
+			this.sideBarSelectedTowerText.text = ""
+			this.sideBarSelectedTowerText.parent.enabled = false
+		}
 	}
 
 	createSideBar () {
-		this.sideBar = new Panel(new Transform(this.map.transform.width,0,UI-1,100,this.camera.transform.height), new Color('gray'), 0, true)
+		this.sideBar = new Panel(
+			new Transform(
+				this.map.transform.width,
+				0,
+				UI-1,
+				this.camera.transform.width - this.map.transform.width,
+				this.camera.transform.height
+			), new Color('gray'), 0, true
+		)
 		this.scene.add(this.sideBar)
 
-		this.sideBarTowerTarget
+		var selectedTowerBG = new Panel(
+			new Transform(
+				this.sideBar.transform.x + 6,
+				this.sideBar.transform.y + 6,
+				UI,
+				this.sideBar.transform.width - 12,
+				0
+			),
+			new Color(0,0,0,0.25)
+		)
+		selectedTowerBG.enabled = false
+		this.sideBar.add(selectedTowerBG)
+
+		this.sideBarSelectedTowerText = new Text(
+			"",
+			new Transform(this.sideBar.transform.x + 12,this.sideBar.transform.y + 22,UI,0,0),
+			new Font("Arial", 14, new Color('white'), 'left', 'center')
+		)
+
+		selectedTowerBG.add(this.sideBarSelectedTowerText)
 	}
 
 	createTowerTray () {
@@ -128,14 +168,12 @@ class Game {
 	}
 
 	createTowerButtons () {
-		var basicTowerCreator = new BasicTowerCreator(new Transform(32,424,UI+2,32,32))
-		var sniperTowerCreator = new SniperTowerCreator(new Transform(96,424,UI+2,32,32))
-		var rapidTowerCreator = new RapidTowerCreator(new Transform(160,424,UI+2,32,32))
-		var iceTowerCreator = new IceTowerCreator(new Transform(224,424,UI+2,32,32))
-		//this.towerTray.add(basicTowerCreator)
-		//this.towerTray.add(sniperTowerCreator)
-		//this.towerTray.add(rapidTowerCreator)
-		//this.towerTray.add(iceTowerCreator)
+		var basicTowerCreator = new BasicTowerCreator(new Transform(0,0,UI+2,32,32))
+		var sniperTowerCreator = new SniperTowerCreator(new Transform(0,0,UI+2,32,32))
+		var rapidTowerCreator = new RapidTowerCreator(new Transform(0,0,UI+2,32,32))
+		var iceTowerCreator = new IceTowerCreator(new Transform(0,0,UI+2,32,32))
+		var iceTowerCreator2 = new IceTowerCreator(new Transform(0,0,UI+2,32,32))
+		var rapidTowerCreator2 = new RapidTowerCreator(new Transform(0,0,UI+2,32,32))
 
 		for (const index in [basicTowerCreator, sniperTowerCreator, rapidTowerCreator, iceTowerCreator]) {
 			var tower = [basicTowerCreator, sniperTowerCreator, rapidTowerCreator, iceTowerCreator][index]
@@ -157,6 +195,8 @@ class Game {
 		towerSlider.add(sniperTowerCreator)
 		towerSlider.add(rapidTowerCreator)
 		towerSlider.add(iceTowerCreator)
+		towerSlider.add(iceTowerCreator2)
+		towerSlider.add(rapidTowerCreator2)
 		this.slider = towerSlider
 	}
 
@@ -164,6 +204,13 @@ class Game {
 	createOtherButtons () {
 		var _this = this
 		var sbTrans = this.sideBar.transform
+		this.targetButtonHolder = new Panel(
+			new Transform(sbTrans.x+30, sbTrans.y+200,UI,1,1),
+			new Color(0,0,0,0)
+		)
+		// ADD TARGET-BUTTON HOLDER TO SCENE
+		this.sideBar.add(this.targetButtonHolder)
+
 		//
 		// CREATE TARGET WEAKEST BUTTON
 		// 
@@ -173,7 +220,7 @@ class Game {
 			0,
 			true
 		)
-		this.sideBar.add(this.targetWeakestButton)
+		this.targetButtonHolder.add(this.targetWeakestButton)
 		this.targetWeakestButton.add(new Text(
 			"Weak",
 			new Transform(
@@ -194,7 +241,7 @@ class Game {
 			0,
 			true
 		)
-		this.sideBar.add(this.targetStrongestButton)
+		this.targetButtonHolder.add(this.targetStrongestButton)
 		this.targetStrongestButton.add(new Text(
 			"Strong",
 			new Transform(
@@ -210,12 +257,12 @@ class Game {
 		// CREATE TARGET FIRST BUTTON
 		// 
 		this.targetFirstButton = new Button(
-			new Transform(sbTrans.x+10,sbTrans.y+242,UI+2,32,32),
+			new Transform(sbTrans.x+10,sbTrans.y+248,UI+2,32,32),
 			new Color('brown'),
 			0,
 			true
 		)
-		this.sideBar.add(this.targetFirstButton)
+		this.targetButtonHolder.add(this.targetFirstButton)
 		this.targetFirstButton.add(new Text(
 			"First",
 			new Transform(
@@ -231,12 +278,12 @@ class Game {
 		// CREATE TARGET LAST BUTTON
 		// 
 		this.targetLastButton = new Button(
-			new Transform(sbTrans.x+58,sbTrans.y+242,UI+2,32,32),
+			new Transform(sbTrans.x+58,sbTrans.y+248,UI+2,32,32),
 			new Color('brown'),
 			0,
 			true
 		)
-		this.sideBar.add(this.targetLastButton)
+		this.targetButtonHolder.add(this.targetLastButton)
 		this.targetFirstButton.add(new Text(
 			"Last",
 			new Transform(
@@ -252,11 +299,12 @@ class Game {
 		// CREATE SELL TOWER BUTTON
 		// 
 		var sellButton = new Button(
-			new Transform(sbTrans.x+10,sbTrans.rect.bottom-42,UI+2,80,32),
+			new Transform(0,0,UI+2,80,32),
 			new Color('red'),
 			0,
 			true
 		)
+		sellButton.moveCenterTo(new Vector2(sbTrans.rect.center.x, sbTrans.rect.bottom-32))
 		this.sideBar.add(sellButton)
 		this.sellButtonText = new Text(
 			"Sell for 0",
