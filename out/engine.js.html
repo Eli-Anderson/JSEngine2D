@@ -1,13 +1,41 @@
-/**
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: engine.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: engine.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
  * Creates a Color object which holds RGBA values with a toString method
  * for easy printing and setting to the Canvas' Context (which needs colors
  * in the form "rgba(r,g,b,a)".
  *
  * @class Color
- * @param r {number} [0,255] The red component of the color
- * @param g {number} [0,255] The green component of the color
- * @param b {number} [0,255] The blue component of the color
- * @param a {number} [0,1] The alpha component of the color
+ * @param r {int} [0,255] The red component of the color
+ * @param g {int} [0,255] The green component of the color
+ * @param b {int} [0,255] The blue component of the color
+ * @param a {double} [0,1] The alpha component of the color
  */
 class Color {
     constructor(r, g, b, a = 1) {
@@ -46,7 +74,7 @@ class Color {
     }
 
     set a(a) {
-        if (a < 0)
+        if (a &lt; 0)
             a = Math.abs(a);
         if (a > 1)
             a = a % 1;
@@ -230,7 +258,7 @@ class Vector2 {
     }
 
     equals(other) {
-        return this.x == other.x && this.y == other.y;
+        return this.x == other.x &amp;&amp; this.y == other.y;
     }
 
     /**
@@ -259,7 +287,7 @@ class Vector2 {
      */
     static angleBetween(v1, v2) {
         let angle = Math.atan2(v2.y - v1.y, v2.x - v1.x);
-        if (angle < 0) angle += Math.PI * 2;
+        if (angle &lt; 0) angle += Math.PI * 2;
         return angle;
     }
 
@@ -275,7 +303,7 @@ class Vector2 {
      */
     static lerp(start, destination, t) {
         if (t > 1) t = 1;
-        if (t < 0) t = 0;
+        if (t &lt; 0) t = 0;
         let result = new Vector2(0, 0);
         result.x = start.x + ((destination.x - start.x) * t);
         result.y = start.y + ((destination.y - start.y) * t);
@@ -368,17 +396,7 @@ class Vector2 {
 
 }
 
-/**
- * A Vector object holding x, y, and z components.
- * @class Vector3
- */
 class Vector3 extends Vector2 {
-    /**
-     *
-     * @param x {number}
-     * @param y {number}
-     * @param z {number}
-     */
     constructor(x, y, z = 0) {
         super(x, y);
         this.z = z;
@@ -436,7 +454,7 @@ class Vector3 extends Vector2 {
     }
 
     equals(other) {
-        return super.equals(other) && this.z == other.z;
+        return super.equals(other) &amp;&amp; this.z == other.z;
     }
 
     toVector2() {
@@ -474,20 +492,8 @@ class Vector3 extends Vector2 {
         return new Vector3(0, 0, 0)
     }
 }
-/**
- * A Transform object used for positioning an object. Has x, y, and z
- * components, as well as width, height, and a rotation.
- * @class Transform
- */
+
 class Transform extends Vector3 {
-    /**
-     *
-     * @param x {number}
-     * @param y {number}
-     * @param z {number}
-     * @param width {number}
-     * @param height {number}
-     */
     constructor(x, y, z, width, height) {
         super(x, y, z);
 
@@ -539,7 +545,7 @@ class Transform extends Vector3 {
         let PI2 = Math.PI * 2;
         let a = angle % PI2;
 
-        if (a < 0)
+        if (a &lt; 0)
             a += PI2;
         this._rotation = a;
     }
@@ -555,14 +561,14 @@ class Transform extends Vector3 {
     }
     rotateTowards(angle, t) {
         if (t > 1) t = 1;
-        if (t < 0) t = 0;
+        if (t &lt; 0) t = 0;
         let a = angle % (Math.PI * 2);
         let PI2 = Math.PI * 2;
         if (this.rotation - a > Math.PI) {
             this.rotation = Math.abs((this.rotation + (a - (this.rotation - PI2)) * t) % PI2)
-        } else if (this.rotation - a < -Math.PI) {
+        } else if (this.rotation - a &lt; -Math.PI) {
             this.rotation = (this.rotation + (a - (this.rotation + PI2)) * t) % PI2;
-            if (this.rotation < 0) {
+            if (this.rotation &lt; 0) {
                 this.rotation += PI2
             }
         } else {
@@ -640,9 +646,9 @@ class Rect extends Vector2 {
     }
 
     equals(rect) {
-        return this.x == rect.x &&
-            this.y == rect.y &&
-            this.w == rect.w &&
+        return this.x == rect.x &amp;&amp;
+            this.y == rect.y &amp;&amp;
+            this.w == rect.w &amp;&amp;
             this.h == rect.h
     }
 
@@ -718,7 +724,7 @@ class Container {
      * @param      {Container}  child   The child to be added to the container
      */
     add(child) {
-        if (child !== this && child.parent === null) { // child is not this, child is an orphan
+        if (child !== this &amp;&amp; child.parent === null) { // child is not this, child is an orphan
             child._parent = this;
             this.children.push(child);
             this.addToFlattened(child);
@@ -742,7 +748,7 @@ class Container {
      */
     remove(child) {
         let index = this.children.indexOf(child);
-        if (index < 0) {
+        if (index &lt; 0) {
             return false
         }
         this.children.splice(index, 1);
@@ -759,7 +765,7 @@ class Container {
      * removed from this container as well as any parents.
      */
     removeAll() {
-        if (this.parent != null && this.parent.removeFromFlattened) {
+        if (this.parent != null &amp;&amp; this.parent.removeFromFlattened) {
             for (const index in this.flattened) {
                 this.parent.removeFromFlattened(this.flattened[index])
             }
@@ -801,7 +807,7 @@ class Container {
      */
     addToFlattened(child) {
         this.flattened.push(child);
-        if (this.parent != null && this.parent.addToFlattened) {
+        if (this.parent != null &amp;&amp; this.parent.addToFlattened) {
             this.parent.addToFlattened(child)
         }
     }
@@ -815,7 +821,7 @@ class Container {
      */
     removeFromFlattened(child) {
         this.flattened.splice(this.flattened.indexOf(child), 1);
-        if (this.parent != null && this.parent.removeFromFlattened) {
+        if (this.parent != null &amp;&amp; this.parent.removeFromFlattened) {
             this.parent.removeFromFlattened(child)
         }
     }
@@ -986,7 +992,7 @@ class Component {
     }
 
     _update(dt) {
-        if (this.enabled === true && this.update !== undefined) {
+        if (this.enabled === true &amp;&amp; this.update !== undefined) {
             this.update(dt);
         }
     }
@@ -1007,7 +1013,7 @@ class Scene {
 
 
     add(child) {
-        if (child !== this && child.parent == null) {
+        if (child !== this &amp;&amp; child.parent == null) {
             this.children.push(child);
             child._parent = this;
         } else {
@@ -1018,7 +1024,7 @@ class Scene {
 
     remove(child) {
         let index = this.children.indexOf(child);
-        if (index < 0) {
+        if (index &lt; 0) {
             return false;
         }
         this.children.splice(index, 1);
@@ -1082,7 +1088,7 @@ class Scene {
 
     static removeInputComponent(component) {
         let index = Scene.inputComponents.indexOf(component);
-        if (index < 0) return;
+        if (index &lt; 0) return;
         Scene.inputComponents.splice(index, 1);
     }
 
@@ -1260,19 +1266,19 @@ class Collision {
     static pointIsInRect(point, rect) {
         let w = rect.width;
         let h = rect.height;
-        return point.x >= rect.x && point.x <= rect.x + w &&
-            point.y >= rect.y && point.y <= rect.y + h
+        return point.x >= rect.x &amp;&amp; point.x &lt;= rect.x + w &amp;&amp;
+            point.y >= rect.y &amp;&amp; point.y &lt;= rect.y + h
     }
 
     static pointIsInCircle(point, circle) {
         if (circle.r === undefined) console.error('radius not found on: ', circle);
         return Math.sqrt(((point.x - circle.x) * (point.x - circle.x)) +
-            ((point.y - circle.y) * (point.y - circle.y))) < circle.r
+            ((point.y - circle.y) * (point.y - circle.y))) &lt; circle.r
     }
 
     static rectIsTouchingRect(rectA, rectB) {
-        if (rectA.x + rectA.width >= rectB.x && rectA.x <= rectB.x + rectB.width &&
-            rectA.y + rectA.height >= rectB.y && rectA.y <= rectB.y + rectB.height) {
+        if (rectA.x + rectA.width >= rectB.x &amp;&amp; rectA.x &lt;= rectB.x + rectB.width &amp;&amp;
+            rectA.y + rectA.height >= rectB.y &amp;&amp; rectA.y &lt;= rectB.y + rectB.height) {
 
             let x_overlap = Math.max(0, Math.min(rectA.right, rectB.right) - Math.max(rectA.x, rectB.x));
             let y_overlap = Math.max(0, Math.min(rectA.bottom, rectB.bottom) - Math.max(rectA.y, rectB.y));
@@ -1297,7 +1303,7 @@ class Collision {
         // compute the direction vector D from A to B
         let D = new Vector2((B.x - A.x) / LAB, (B.y - A.y) / LAB);
 
-        // Now the line equation is x = D.x*t + Ax, y = D.y*t + Ay with 0 <= t <= 1.
+        // Now the line equation is x = D.x*t + Ax, y = D.y*t + Ay with 0 &lt;= t &lt;= 1.
 
         // compute the value t of the closest point to the circle center (Cx, Cy)
         let t = D.x * (C.x - A.x) + D.y * (C.y - A.y);
@@ -1311,7 +1317,7 @@ class Collision {
         let LEC = Math.sqrt((E.x - C.x) * (E.x - C.x) + (E.y - C.y) * (E.y - C.y));
 
         // test if the line intersects the circle
-        if (LEC < R) {
+        if (LEC &lt; R) {
             // compute distance from t to circle intersection point
             let dt = Math.sqrt((R * R) - (LEC * LEC));
 
@@ -1339,7 +1345,7 @@ class Collision {
         let s, t;
         s = (-dvA.y * (lineA.start.x - lineB.start.x) + dvA.x * (lineA.start.y - lineB.start.y)) / (-dvB.x * dvA.y + dvA.x * dvB.y);
         t = (dvB.x * (lineA.start.y - lineB.start.y) - dvB.y * (lineA.start.x - lineB.start.x)) / (-dvB.x * dvA.y + dvA.x * dvB.y);
-        if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
+        if (s >= 0 &amp;&amp; s &lt;= 1 &amp;&amp; t >= 0 &amp;&amp; t &lt;= 1) {
             // Collision detected
             let intX = lineA.start.x + (t * dvA.x);
             let intY = lineA.start.y + (t * dvA.y);
@@ -1543,7 +1549,7 @@ class Camera extends Component {
             let el = sortedElements[index];
             for (const index in el.components) {
                 let comp = el.components[index];
-                if (comp.draw && comp instanceof Camera === false) {
+                if (comp.draw &amp;&amp; comp instanceof Camera === false) {
                     if (el.isUI) {
                         if (Collision.rectIsTouchingRect(
                                 el.transform,
@@ -1673,7 +1679,7 @@ class Animator extends Component {
     }
 
     _update(dt) {
-        if (this.gameObject.enabled && this.enabled === true) {
+        if (this.gameObject.enabled &amp;&amp; this.enabled === true) {
             if (this.animation == null) return;
             this.frameCounter++;
             if (this.frameCounter % this.frameRate === 0) {
@@ -1723,7 +1729,7 @@ class SpriteRenderer extends Component {
     }
 
     draw(context, position) {
-        if (this.gameObject.enabled && this.enabled) {
+        if (this.gameObject.enabled &amp;&amp; this.enabled) {
             let t = this.gameObject.transform;
             context.save();
             context.scale(t.scale.x, t.scale.y);
@@ -1860,7 +1866,7 @@ class RigidBody extends Component {
     }
 
     _update(dt) {
-        if (this.gameObject.enabled && this.enabled) {
+        if (this.gameObject.enabled &amp;&amp; this.enabled) {
             this.addForce(this.acceleration);
             if (this.velocity.magnitude > this.maxSpeed) {
                 this.velocity.mult(this.maxSpeed / this.velocity.magnitude)
@@ -1982,7 +1988,7 @@ class PhysicsCollider extends Collider {
             Not working quite right, when multiple colliders touch
             physics goes wacky
 
-            if (otherCollider.gameObject.getComponent(RigidBody) &&
+            if (otherCollider.gameObject.getComponent(RigidBody) &amp;&amp;
                 otherCollider.isStatic == false) {
                     otherCollider.gameObject.getComponent(RigidBody).addForce(
                         Vector2.MULT(this.gameObject.getComponent(RigidBody).velocity, 0.1)
@@ -2028,10 +2034,10 @@ class PhysicsCollider extends Collider {
         let absDY = Math.abs(dy);
 
         let vel = this.gameObject.getComponent(RigidBody).velocity;
-        if (Math.abs((this.bound.x - vel.x) - otherCollider.bound.right) < 1) {
+        if (Math.abs((this.bound.x - vel.x) - otherCollider.bound.right) &lt; 1) {
             // this left is the same as the right of the collider
 
-            if (Math.abs((this.bound.y - vel.y) - otherCollider.bound.bottom) < 1) {
+            if (Math.abs((this.bound.y - vel.y) - otherCollider.bound.bottom) &lt; 1) {
                 // this top left is equal to other bottom right
                 //console.log('TL -> BR')
                 /*
@@ -2045,7 +2051,7 @@ class PhysicsCollider extends Collider {
                 */
                 return
             }
-            if (Math.abs((this.bound.bottom - vel.y) - otherCollider.bound.y) < 1) {
+            if (Math.abs((this.bound.bottom - vel.y) - otherCollider.bound.y) &lt; 1) {
                 // this bottom left is equal to other top right
                 //console.log('BL -> TR')
                 /*
@@ -2060,10 +2066,10 @@ class PhysicsCollider extends Collider {
                 return
             }
         }
-        if (Math.abs((this.bound.right - vel.x) - otherCollider.bound.x) < 1) {
+        if (Math.abs((this.bound.right - vel.x) - otherCollider.bound.x) &lt; 1) {
             // this right is equal to other left
 
-            if (Math.abs((this.bound.y - vel.y) - otherCollider.bound.bottom) < 1) {
+            if (Math.abs((this.bound.y - vel.y) - otherCollider.bound.bottom) &lt; 1) {
                 // this top right is equal to other bottom left
                 //console.log('TR -> BL')
                 /*
@@ -2077,7 +2083,7 @@ class PhysicsCollider extends Collider {
                 */
                 return
             }
-            if (Math.abs((this.bound.bottom - vel.y) - otherCollider.bound.y) < 1) {
+            if (Math.abs((this.bound.bottom - vel.y) - otherCollider.bound.y) &lt; 1) {
                 // this bottom right is equal to other top left
                 //console.log('BR -> TL')
                 /*
@@ -2097,15 +2103,15 @@ class PhysicsCollider extends Collider {
         // If the distance between the normalized x and y
         // position is less than a small threshold (.1 in this case)
         // then this object is approaching from a corner
-        if (Math.abs(absDX - absDY) < 0.02) {
+        if (Math.abs(absDX - absDY) &lt; 0.02) {
             if (this.gameObject.name == 'player')
             //console.log('corner')
 
 
-                if (dx < 0) {
+                if (dx &lt; 0) {
                     // If the player is approaching from positive X
 
-                    if (dy < 0) {
+                    if (dy &lt; 0) {
                         // If the player is approaching from positive Y
                         //this.gameObject.moveTo(new Vector2(
                         //	otherCollider.bound.right,
@@ -2132,7 +2138,7 @@ class PhysicsCollider extends Collider {
                 } else {
                     // If the player is approaching from negative X
 
-                    if (dy < 0) {
+                    if (dy &lt; 0) {
                         // If the player is approaching from positive Y
                         this.gameObject.moveTo(new Vector2(
                             otherCollider.bound.x - this.bound.width,
@@ -2160,7 +2166,7 @@ class PhysicsCollider extends Collider {
             //console.log('sides')
 
             // If the player is approaching from positive X
-            if (dx < 0) {
+            if (dx &lt; 0) {
                 this.gameObject.moveTo(new Vector2(otherCollider.bound.right, this.gameObject.transform.y))
 
             } else {
@@ -2173,7 +2179,7 @@ class PhysicsCollider extends Collider {
             vel.x *= -otherCollider.bounciness;
             vel.y *= otherCollider.slickness;
 
-            if (Math.abs(this.gameObject.getComponent(RigidBody).velocity.x) < STICKY_THRESHOLD) {
+            if (Math.abs(this.gameObject.getComponent(RigidBody).velocity.x) &lt; STICKY_THRESHOLD) {
                 vel.x = 0
             }
 
@@ -2182,7 +2188,7 @@ class PhysicsCollider extends Collider {
             //console.log('top')
 
             // If the player is approaching from positive Y
-            if (dy < 0) {
+            if (dy &lt; 0) {
                 this.gameObject.moveTo(new Vector2(this.gameObject.transform.x, otherCollider.bound.bottom))
 
             } else {
@@ -2194,7 +2200,7 @@ class PhysicsCollider extends Collider {
             vel.y *= -otherCollider.bounciness;
             vel.x *= otherCollider.slickness;
 
-            if (Math.abs(vel.y) < STICKY_THRESHOLD) {
+            if (Math.abs(vel.y) &lt; STICKY_THRESHOLD) {
                 vel.y = 0
             }
         }
@@ -2245,7 +2251,7 @@ class PhysicsEngine {
                 if (coll1.enabled === false || coll1.gameObject.enabled === false) break;
                 let coll2 = PhysicsEngine.colliders[index2];
 
-                if (coll2.enabled === true && coll2.gameObject.enabled === true && coll1 !== coll2) {
+                if (coll2.enabled === true &amp;&amp; coll2.gameObject.enabled === true &amp;&amp; coll1 !== coll2) {
                     if (coll1.checkCollisionWith(coll2)) {
                         coll1._onEnter(coll2)
                     }
@@ -2271,7 +2277,7 @@ class RayCastPoint {
         let dist = Vector2.sub(this.start, this.points[0]).magnitude;
         for (const index in this.points) {
             let tempDist = Vector2.sub(this.start, this.points[index]).magnitude;
-            if (tempDist < dist) {
+            if (tempDist &lt; dist) {
                 first = this.points[index];
                 dist = tempDist
             }
@@ -2378,4 +2384,26 @@ class Parallax extends Component {
                 this.update(dt)
         }
     }
-}
+}</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Animator.html">Animator</a></li><li><a href="Color.html">Color</a></li><li><a href="SpriteRenderer.html">SpriteRenderer</a></li><li><a href="Vector2.html">Vector2</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Sun Mar 11 2018 22:21:16 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
