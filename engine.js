@@ -1072,8 +1072,13 @@ class Scene {
         }
     }
 
-    static clear(context) {
-        context.fillRect(0, 0, Camera.mainCamera.viewport.width, Camera.mainCamera.viewport.height);
+    static clear(context, color = Color.BLACK) {
+        if (Camera.mainCamera) {
+            context.fillStyle = color;
+            context.fillRect(0, 0, Camera.mainCamera.viewport.width, Camera.mainCamera.viewport.height);
+        } else {
+            console.error("No camera was found");
+        }
     }
 
     static addInputComponent(component) {
@@ -1114,23 +1119,23 @@ class Scene {
         }
     }
 
-    static handleInput(type, mouse) {
+    static handleInput(type) {
         for (const index in Scene.inputComponents) {
             let comp = Scene.inputComponents[index];
             if (comp.gameObject.enabled) {
                 if (type === 'move') {
                     if (comp.isDragged) {
-                        comp._onDrag(mouse);
+                        comp._onDrag(Input.mouse);
                         break
                     }
                 } else if (type === 'down') {
-                    if (Collision.pointIsInRect(mouse, comp.gameObject.transform)) {
-                        comp._onClick(mouse);
+                    if (Collision.pointIsInRect(Input.mouse, comp.gameObject.transform)) {
+                        comp._onClick(Input.mouse);
                         break
                     }
                 } else if (type === 'up') {
                     if (comp.isDragged) {
-                        comp._onRelease(mouse);
+                        comp._onRelease(Input.mouse);
                         break
                     }
                 }
@@ -1224,9 +1229,28 @@ class Input {
             Input.handleInput(e.key, Input.KEYDOWN);
         });
         target.addEventListener('keyup', (e) => Input.handleInput(e.key, Input.KEYUP));
+
+        target.addEventListener('mousemove', function (e) {
+            Input.mouse.x = e.clientX - (target.offsetLeft ? target.offsetLeft : 0);
+            Input.mouse.y = e.clientY - (target.offsetTop ? target.offsetTop : 0);
+            Scene.handleInput('move');
+        });
+        target.addEventListener('mousedown', function (e) {
+            Input.mouse.down = true;
+            Scene.handleInput('down');
+        });
+        target.addEventListener('mouseup', function (e) {
+            Input.mouse.down = false;
+            Scene.handleInput('up');
+        });
     }
 }
 
+Input.mouse = {
+    'x': 0,
+    'y': 0,
+    'down': false,
+};
 Input.inputData = {};
 Input.KEYDOWN = 'keydown';
 Input.KEYUP = 'keyup';
@@ -1413,7 +1437,7 @@ class Font {
     constructor(name, size, color, alignment, vertAlignment) {
         this._name = name || 'Arial';
         this._size = size || 12;
-        this._color = color || new Color(0, 0, 0, 1);
+        this._color = color || Color.BLACK;
         this._alignment = alignment || 'left';
         this._vertAlignment = vertAlignment || 'top';
         this._class = Font
