@@ -1146,6 +1146,7 @@ class GameObject extends Container {
 	}
 
 	rotate(radians) {
+		// TODO: Rotating CircleSprites does not work correctly
 		this.transform.rotation = (this.transform.rotation + radians) % (Math.PI * 2);
 		for (let child of this._flattened) {
 			child.transform.rotation = (child.transform.rotation + radians) % (Math.PI * 2);
@@ -2131,8 +2132,46 @@ class Collider extends Component {
 		this._bound = bound;
 		this.worldBound = bound;
 		this._layer = layer || Collider.LAYER_ALL;
-		this.collisions = [];
-		this.colliders = [];
+		this._collisions = [];
+		this._colliders = [];
+	}
+
+	get collisions() {
+		// we need to do this extra work because GameObjects and Colliders
+		// can be destroyed or disabled while being stored in the current
+		// list of collisions. This means the onExit will never be called,
+		// so the collision will stay in the list forever. We need to purge
+		// the disabled/dead collisions.
+		let fixedCollisions = [];
+		for (let i=0; i<this._collisions.length; i++) {
+			let coll = this._collisions[i];
+			if (typeof coll.colliderB.gameObject !== 'undefined' &&
+				coll.colliderB.gameObject.enabled && coll.colliderB.enabled &&
+				coll.colliderA.gameObject.enabled && coll.colliderA.enabled) {
+				fixedCollisions.push(coll);
+			}
+		}
+		this._collisions = fixedCollisions;
+		return this._collisions;
+	}
+
+	get colliders() {
+		// we need to do this extra work because GameObjects and Colliders
+		// can be destroyed or disabled while being stored in the current
+		// list of colliders. This means the onExit will never be called,
+		// so the collider will stay in the list forever. We need to purge
+		// the disabled/dead colliders.
+		let fixedColliders = [];
+		for (let i=0; i<this._colliders.length; i++) {
+			let coll = this._colliders[i];
+			if (typeof coll.gameObject !== 'undefined' &&
+				coll.enabled && coll.gameObject.enabled) {
+
+				fixedColliders.push(coll);
+			}
+		}
+		this._colliders = fixedColliders;
+		return this._colliders;
 	}
 
 	get layer() {
@@ -2210,10 +2249,11 @@ class Collider extends Component {
 		if (colliderIndex >= 0) {
 			this.colliders.splice(colliderIndex, 1);
 		}
-
-		let collisionIndex = this.collisions.indexOf(collision);
-		if (collisionIndex >= 0) {
-			this.collisions.splice(collisionIndex, 1);
+		for (let i=0; i<this.collisions.length; i++) {
+			if (this.collisions[i].colliderA === collision.colliderA &&
+				this.collisions[i].colliderB === collision.colliderB) {
+				this.collisions.splice(i, 1);
+			}
 		}
 		this.onExit(collision);
 	}
@@ -2266,6 +2306,8 @@ class SpriteRenderer extends Component {
 		super();
 		this.sprite = sprite;
 		this.borderEnabled = false;
+
+		this.hue = 0; // uses context.filter=hue-rotate(hue), which is slow. Use with caution
 	}
 
 	set sprite(sprite) {
@@ -2297,6 +2339,10 @@ class SpriteRenderer extends Component {
 				context.scale(t.scale.x, t.scale.y);
 			}
 			let bounds = new Rect(position.x, position.y, t.width, t.height);
+			if (this.hue) {
+				context.filter = "hue-rotate("+this.hue+"deg)";
+			}
+
 			this.sprite.draw(context, bounds);
 			if (this.borderEnabled === true) {
 				SpriteRenderer.drawBorder(context, bounds);
@@ -2347,8 +2393,9 @@ class ImageResource extends Resource {
 
 class Loader {
 	constructor() {
-		this.numLoaded = 0;
-		this.numFailed = 0;
+		this.loadedResources = {};
+		this.failedResources = {};
+		this.loadingResources = {};
 		this.resources = {};
 	}
 
@@ -2357,32 +2404,63 @@ class Loader {
 			console.error("Loader only accepts objects that extend the Resource class");
 		} else {
 			this.resources[key] = resource;
+			this.loadingResources[key] = this.resources[key];
 		}
 	}
 
 	get finished() {
-		this.numLoaded = 0;
-		this.numFailed = 0;
-		for (let resource in this.resources) {
-			if (this.resources[resource].loaded()) this.numLoaded++;
-			if (this.resources[resource].failed()) this.numFailed++;
+		/*	For each loading resource, we check if it is loaded or failed. If loaded, add it to
+		 	our running collection of loaded resources, if failed do the same with our failed resources.
+			We know if everything has been loaded if our loadedResources is the same size as our
+			resources.
+		*/
+		for (let name in this.loadingResources) {
+			if (this.loadingResources[name].loaded()) {
+				this.loadedResources[name] = this.resources[name];
+				delete this.loadingResources[name];
+			}
+			else if (this.loadingResources[name].failed()) {
+				this.failedResources[name] = this.resources[name];
+				delete this.loadingResources[name];
+			}
 		}
-		return this.numLoaded >= this.resources.length;
+		return Object.keys(this.loadedResources).length === Object.keys(this.resources).length;
 	}
 
+	/*	Use this method for starting your game loop. The callback parameter will be called if
+	 *	all resources are loaded OR failed. Make sure to check if any resources have failed to
+	 *	load before beginning your loop. An argument containing the object of failed resources
+	 *	is passed to the callback function (will be empty if all resources loaded successfully,
+	 *	but remember that {} will be handled as a true statement. Use Object.keys(arg) to check
+	 *	if an error occurred.
+	 *	
+	 *	loader.waitUntilLoaded((err)=>{
+	 *		if (Object.keys(err)) {
+	 *			console.error("Failed to load resources:", err);
+	 *			return;
+	 *		}
+	 *		// handle game start, here
+	 *	});
+	 *
+	*/
 	waitUntilLoaded(callback, interval, timeoutLength) {
 		let t = 0;
 		let loader = this;
-		let loadInterval = setInterval(function(){
-			t += interval;
-			if (loader.finished) {
-				clearInterval(loadInterval);
-				callback(true);
-			} else if (t >= timeoutLength || 20000) {
-				clearInterval(loadInterval);
-				callback(false);
-			}
-		}, interval || 100);
+		interval = interval || 100;
+
+		if (loader.finished) {
+			// do an initial check, since setInterval waits until after the first iteration to
+			// run the function
+			callback(loader.failedResources);
+		} else {
+			let loadInterval = setInterval(() => {
+				t += interval;
+				if (loader.finished || t >= (timeoutLength || 20000)) {
+					clearInterval(loadInterval);
+					callback(loader.failedResources);
+				}
+			}, interval);
+		}
 	}
 }
 
@@ -3260,6 +3338,13 @@ class Game {
 		}
 	}
 
+	get averageFPS() {
+		return this._averageFPS;
+	}
+	get FPS() {
+		return Math.round(1000.0 / this._dt);
+	}
+
 	start() {
 		if (!this.running) {
 			this.running = true;
@@ -3282,12 +3367,12 @@ class Game {
 
 			this._fpsArray.push(Math.round(1000.0 / this._dt));
 			if (this._fpsArray.length >= this._counterUpdateRate) {
-				this._averageFPS = 0;
-				this._fpsArray.forEach((fps)=>{this._averageFPS+=fps});
-				this._averageFPS /= this._fpsArray.length;
-				this._averageFPS = Math.round(this._averageFPS);
 				this._fpsArray.splice(0, 1);
 			}
+			this._averageFPS = 0;
+			this._fpsArray.forEach((fps)=>{this._averageFPS+=fps});
+			this._averageFPS /= this._fpsArray.length;
+			this._averageFPS = Math.round(this._averageFPS);
 
 			Input.update(this._dt / 1000);
 			if (!this.paused) {
@@ -3311,13 +3396,6 @@ class Game {
 				setTimeout(()=>{update()}, targetedDt - dt);
 			}
 		}
-	}
-
-	get averageFPS() {
-		return this._averageFPS;
-	}
-	get FPS() {
-		return Math.round(1000.0 / this._dt);
 	}
 }
 Game.instance = null;
