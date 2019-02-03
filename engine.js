@@ -1337,9 +1337,6 @@ class Scene {
 		this._children = [];
 		this._inputComponents = [];
 		this._flattened = [];
-		if (Scene.current === null) {
-			Scene.changeScene(key);
-		}
 	}
 
 	get children() {
@@ -1507,16 +1504,19 @@ class Scene {
 		}
 	}
 
-	static draw(player) {
-		if (Scene.current === null) return;
-		if (Scene.current.mainCamera) {
-			Scene.current.mainCamera.draw(player, Scene.current.flattened);
+	update (dt) {
+		this.flattened.forEach((gameObject)=>{gameObject._update(dt)});
+	}
+
+	draw(player) {
+		if (this.mainCamera) {
+			this.mainCamera.draw(player, this.flattened);
 		} else {
 			// if the mainCamera is not set yet, let's first try to find one
-			for (let child of Scene.current.flattened) {
+			for (let child of this.flattened) {
 				let cameraComponent = child.getComponent(Camera);
 				if (cameraComponent) {
-					Scene.current.mainCamera = cameraComponent;
+					this.mainCamera = cameraComponent;
 					return;
 				}
 			}
@@ -1528,18 +1528,17 @@ class Scene {
 		}
 	}
 
-	static clear(player, color = Color.BLACK) {
-		if (Scene.current === null) return;
-		if (Scene.current.mainCamera) {
+	clear(player, color = Color.BLACK) {
+		if (this.mainCamera) {
 			player.context.fillStyle = color;
-			player.context.fillRect(0, 0, 	Scene.current.mainCamera.viewport.width, 
-											Scene.current.mainCamera.viewport.height);
+			player.context.fillRect(0, 0, 	this.mainCamera.viewport.width, 
+											this.mainCamera.viewport.height);
 		} else {
 			// if the mainCamera is not set yet, let's first try to find one
-			for (let child of Scene.current.flattened) {
+			for (let child of this.flattened) {
 				let cameraComponent = child.getComponent(Camera);
 				if (cameraComponent) {
-					Scene.current.mainCamera = cameraComponent;
+					this.mainCamera = cameraComponent;
 					return;
 				}
 			}
@@ -1549,43 +1548,9 @@ class Scene {
 				console.error("No camera was found");
 			}
 		}
-	}
-
-	static get current() {
-		return Scene._currentScene;
-	}
-
-	static getScene(sceneKey) {
-		if (sceneKey in Scene._scenes) {
-			return Scene._scenes[sceneKey];
-		} else {
-			console.error("Scene " + sceneKey + " not found");
-		}
-	}
-
-	static changeScene(sceneKey) {
-		if (sceneKey in Scene._scenes) {
-			Scene._currentScene = Scene._scenes[sceneKey];
-		} else {
-			console.error("Scene " + sceneKey + " not found");
-		}
-	}
-
-	static deleteScene(sceneKey) {
-		if (sceneKey in Scene._scenes) {
-			delete Scene._scenes[sceneKey];
-		} else {
-			console.error("Scene " + sceneKey + " not found");
-		}
-	}
-
-	static update (dt) {
-		if (Scene.current === null) return;
-		Scene.current.flattened.forEach((gameObject)=>{gameObject._update(dt)});
 	}
 }
 Scene._scenes = [];
-Scene._currentScene = null;
 Scene._noCameraWarningSent = false;
 
 /**
@@ -1879,7 +1844,7 @@ class Input {
 		return Input.keys[key.toLowerCase()].up ? 1 : 0;
 	}
 
-	static createEventListeners(target) {
+	static createEventListeners(target, player) {
 		// TODO: For some reason Canvas elements cannot be focused... to get around
 		// this, I have added "tabindex='1'" on the element. Maybe make this done automatically??
 		target.addEventListener('keydown', (e) => {
@@ -1890,30 +1855,30 @@ class Input {
 		target.addEventListener('mousemove', function (e) {
 			Input.mouse.abs.x = e.clientX - (target.offsetLeft ? target.offsetLeft : 0);
 			Input.mouse.abs.y = e.clientY - (target.offsetTop ? target.offsetTop : 0);
-			if (Game.instance !== null && Scene.current && Scene.current.mainCamera) {
+			if (player.game !== null && player.game.scene && player.game.scene.mainCamera) {
 				// since the Camera scale is held separate from the Player scale, we need to account
 				// for both of them multiplicatively.
-				let actualScale = Vector2.mult(Game.instance.player.scale, Scene.current.mainCamera.scale);
+				let actualScale = Vector2.mult(Game.instance.player.scale, player.game.scene.mainCamera.scale);
 				// the world coordinate of the mouse will be the real position divided by the scale
 				Input.mouse.rel = Vector2.div(Input.mouse.abs, actualScale);
-				Scene.current.handleInput('move');
+				player.game.scene.handleInput('move');
 			}
 		});
 		target.addEventListener('mousedown', function (e) {
 			Input.mouse.down = true;
-			if (Scene.current) {
-				Scene.current.handleInput('down');	
+			if (player.game.scene) {
+				player.game.scene.handleInput('down');	
 			}
 		});
 		target.addEventListener('mouseup', function (e) {
 			Input.mouse.down = false;
-			if (Scene.current) {
-				Scene.current.handleInput('up');	
+			if (player.game.scene) {
+				player.game.scene.handleInput('up');	
 			}
 		});
 		target.addEventListener('dblclick', function (e) {
-			if (Scene.current) {
-				Scene.current.handleInput('dblDown');	
+			if (player.game.scene) {
+				player.game.scene.handleInput('dblDown');	
 			}
 		});
 	}
@@ -3327,9 +3292,10 @@ class Game {
 		this.paused = false;
 		this.running = false;
 
-		this.player = new Player(canvasDOM);
+		this.player = new Player(canvasDOM, this);
+		this.scene = null;
 		this.inputTarget = inputTarget || canvasDOM;
-		Input.createEventListeners(this.inputTarget);
+		Input.createEventListeners(this.inputTarget, this.player);
 	}
 	get dt() {
 		return this._dt;
@@ -3358,6 +3324,32 @@ class Game {
 		return Math.round(1000.0 / this._dt);
 	}
 
+
+	getScene(sceneKey) {
+		if (sceneKey in this._scenes) {
+			return this._scenes[sceneKey];
+		} else {
+			console.error("Scene " + sceneKey + " not found");
+		}
+	}
+
+	changeScene(sceneKey) {
+		if (sceneKey in this._scenes) {
+			this._currentScene = this._scenes[sceneKey];
+		} else {
+			console.error("Scene " + sceneKey + " not found");
+		}
+	}
+
+	deleteScene(sceneKey) {
+		if (sceneKey in this._scenes) {
+			delete this._scenes[sceneKey]; // TODO: Actually delete the scene, not just remove the reference
+		} else {
+			console.error("Scene " + sceneKey + " not found");
+		}
+	}
+
+
 	start() {
 		if (!this.running) {
 			this.running = true;
@@ -3369,6 +3361,7 @@ class Game {
 	}
 
 	_update() {
+		if (this.scene === null) return;
 		if (this.running) {
 			let thisTime = Date.now();
 			this._dt = thisTime - this._lastTime;
@@ -3389,13 +3382,13 @@ class Game {
 
 			Input.update(this._dt / 1000);
 			if (!this.paused) {
-				Scene.clear(this.player);
-				Scene.update(this._dt / 1000);
+				this.scene.clear(this.player);
+				this.scene.update(this._dt / 1000);
 				if (this._physicsUpdateDelay === 0 || this.ticks % this._physicsUpdateDelay === 0) {
 					// update PhysicsEngine every X frames
 					PhysicsEngine.update(this._dt / 1000);
 				}
-				Scene.draw(this.player);
+				this.scene.draw(this.player);
 			}
 			
 			let update = ()=>{this._update()};
@@ -3414,7 +3407,8 @@ class Game {
 Game.instance = null;
 
 class Player {
-	constructor(canvas) {
+	constructor(canvas, game) {
+		this.game = game;
 		this.canvas = canvas;
 		this.context = canvas.getContext('2d');
 		this.canvas.style.position = "absolute";
