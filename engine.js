@@ -970,9 +970,12 @@ class Container {
 			return false
 		}
 		this.children.splice(index, 1);
-		this._removeFromFlattened(child);
+		this._removeFromFlattened(child); // recursively removes from parents, as well
 		for (const grandchild of child.flattened) {
-			this._removeFromFlattened(grandchild);
+			this._removeFromFlattened(grandchild); // recursively removes from parents, as well
+		}
+		if (this.parent !== null) {
+			this.parent._removeFromFlattened()
 		}
 		child._parent = null;
 		return true
@@ -980,7 +983,7 @@ class Container {
 
 	/**
 	 * Removes all children from this container. In doing so, all descendants are
-	 * removed from this container as well as any parents.
+	 * removed from this container as well as any parent's.
 	 */
 	removeAll() {
 		if (this.parent !== null && this.parent._removeFromFlattened) {
@@ -1040,7 +1043,7 @@ class Container {
 	_removeFromFlattened(child) {
 		this.flattened.splice(this.flattened.indexOf(child), 1);
 		if (this.parent != null && this.parent._removeFromFlattened) {
-			this.parent._removeFromFlattened(child)
+			this.parent._removeFromFlattened(child);
 		}
 	}
 
@@ -1216,11 +1219,8 @@ class GameObject extends Container {
 		return false;
 	}
 
-	removeAllComponents() {
+	destroyComponents() {
 		for (let c of this.components) {
-			if (c instanceof InputComponent) {
-				Scene.getScene(this._sceneKey).removeInputComponent(c);
-			}
 			c.destroy();
 		}
 		this.components = [];
@@ -1245,15 +1245,15 @@ class GameObject extends Container {
 	}
 
 	destroy() {
+		this.enabled = false;
 		if (this.parent) {
 			this.parent.remove(this);
 		}
-		this.removeAllComponents();
+		this.destroyComponents();
 		for (let child of this.flattened) {
-			child.removeAllComponents();
+			child.destroyComponents();
 		}
-		this.removeAll(); // FIX ME : Need to delete child GameObjects and their Components, not just remove them
-		this.enabled = false
+		this.removeAll(); // FIX ME : Need to delete child GameObjects and their Components, not just remove them?
 	}
 
 	/**
@@ -1291,6 +1291,9 @@ class GameObject extends Container {
 		}
 	}
 }
+
+
+
 class Component {
 	constructor() {
 		this.gameObject = null;
@@ -1306,8 +1309,8 @@ class Component {
 	}
 
 	destroy() {
-		delete this.gameObject;
-		this.enabled = false;
+		delete this.gameObject; // delete what should be the only reference to this object
+		this.enabled = false; // disable just in case it isn't
 	}
 
 	_update(dt) {
@@ -1585,7 +1588,6 @@ Scene._scenes = [];
 Scene._currentScene = null;
 Scene._noCameraWarningSent = false;
 
-
 /**
  * Class for input components. Extended from the Component class. Extend this class to
  * create components that will make use of the mouse. This is needed because of how 
@@ -1796,7 +1798,9 @@ class Camera extends Component {
 	}
 
 	destroy() {
-		Camera._mainCamera = null;
+		if (this === Camera._mainCamera) {
+			Camera._mainCamera = null;
+		}
 		super.destroy()
 	}
 }
@@ -2431,11 +2435,11 @@ class Loader {
 	 *	all resources are loaded OR failed. Make sure to check if any resources have failed to
 	 *	load before beginning your loop. An argument containing the object of failed resources
 	 *	is passed to the callback function (will be empty if all resources loaded successfully,
-	 *	but remember that {} will be handled as a true statement. Use Object.keys(arg) to check
-	 *	if an error occurred.
+	 *	but remember that {} will be handled as a true statement. Use Object.keys(arg).length
+	 *	to check if an error occurred.
 	 *	
 	 *	loader.waitUntilLoaded((err)=>{
-	 *		if (Object.keys(err)) {
+	 *		if (Object.keys(err).length) {
 	 *			console.error("Failed to load resources:", err);
 	 *			return;
 	 *		}
@@ -3290,6 +3294,15 @@ class Util {
 		}
 		return result;
 	}
+	//return random string of length n, from set string or entire alphabet
+	static randStr(n, str){
+		str = str || "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+		let result = "";
+		for(let i in Util.range(0, n)){
+			result += str.charAt(Util.randRange(0,str.length));
+		}
+		return result;
+	}
 }
 
 
@@ -3545,7 +3558,7 @@ if (typeof module !== 'undefined') {
 		'RectCollider': RectCollider,
 		'CircleCollider': CircleCollider,
 		'SpriteRenderer': SpriteRenderer,
-		'resource': resource,
+		'Resource': Resource,
 		'Loader': Loader,
 		'Sprite': Sprite,
 		'CircleSprite': CircleSprite,
