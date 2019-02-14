@@ -67,7 +67,7 @@ class Color {
 	 * @returns {string}
 	 */
 	toString() {
-		return 'rgba(' + this.r + ',' + this.g + ',' + this.b + ',' + this.a + ')';
+		return `rgba(${this.r}, ${this.g}, ${this.b}, ${this.a})`;
 	}
 
 	/**
@@ -170,6 +170,7 @@ class Color {
 	}
 
 }
+
 /**
  * A Vector object holding x and y components.
  * @class Vector2
@@ -231,6 +232,14 @@ class Vector2 {
 	 */
 	get normal() {
 		return new Vector2(-this.y, this.x);
+	}
+
+	/**
+	 * Get the vector with rounded components
+	 * @returns {Vector2}
+	 */
+	get rounded() {
+		return new Vector2(Math.round(this.x), Math.round(this.y));
 	}
 
 
@@ -484,13 +493,21 @@ class Vector2 {
 class Vector3 extends Vector2 {
 	/**
 	 *
-	 * @param x {number}
+	 * @param x {number or Vector2}
 	 * @param y {number}
-	 * @param z {number}
+	 * @param z {number} optional
 	 */
-	constructor(x, y, z = 0) {
-		super(x, y);
-		this.z = z;
+	constructor(x, y, z) {
+		super(0,0);
+		if (x instanceof Vector2) {
+			this.x = x.x;
+			this.y = x.y;
+			this.z = y || 0;
+		} else {
+			this.x = x;
+			this.y = y;
+			this.z = z || 0;
+		}
 	}
 
 	get z() {
@@ -871,6 +888,7 @@ class Transform extends Vector3 {
 	static get zero() {return new Transform(0, 0, 0, 0, 0);}
 
 }
+
 class Container {
 	constructor(transform) {
 		// Use default Transform if unspecified
@@ -1291,8 +1309,6 @@ class GameObject extends Container {
 		}
 	}
 }
-
-
 
 class Component {
 	constructor() {
@@ -1888,6 +1904,7 @@ class Input {
 		target.addEventListener('keyup', (e) => Input.handleInput(e.key, Input.KEYUP));
 
 		target.addEventListener('mousemove', function (e) {
+			//TODO: For some reason the left-most edge of the canvas shows up as > 0 in e.clientX
 			Input.mouse.abs.x = e.clientX - (target.offsetLeft ? target.offsetLeft : 0);
 			Input.mouse.abs.y = e.clientY - (target.offsetTop ? target.offsetTop : 0);
 			if (Game.instance !== null && Scene.current && Scene.current.mainCamera) {
@@ -2368,39 +2385,45 @@ class SpriteRenderer extends Component {
  * @class      Resource (name)
  */
 class Resource {
-	constructor() {}
-	loaded() {
-		return false;
-	}
-	failed() {
-		return false;
-	}
-	onLoad() {}
-	onError(err){
-		console.error("Resource failed to load", err);
+	constructor() {
+		this.loaded = false;
+		this.failed = false;
 	}
 }
 
 class ImageResource extends Resource {
-	constructor(path) {
+	constructor(path, size) {
 		super();
 		this.image = new Image();
+		this.image.onload = (ev)=>{
+			this.loaded = true;
+			this.onLoad(ev);
+		}
+		this.image.onerror = (ev)=>{
+			this.failed = true;
+			this.onError(ev)
+		}
 		this.image.src = path;
-	}
-	loaded() {
-		return this.image.complete && this.image.width !== 0;
-	}
-	failed() {
-		return this.image.complete && this.image.width === 0 && this.image.height === 0;
 	}
 }
 
+
+/**
+ * Class for loader.
+ *
+ *	See the example code below:
+ *		loader.add('tiles', new ImageResource('resource/path.png')); // load the path.png only once
+ *		Sprite.setSprite('tile_grass', new Sprite(loader.resources['tiles'], new Rect(0,0,32,32)));
+ *
+ * @class      Loader (name)
+ */
 class Loader {
 	constructor() {
 		this.loadedResources = {};
 		this.failedResources = {};
 		this.loadingResources = {};
 		this.resources = {};
+		this.size = null;
 	}
 
 	add(key, resource) {
@@ -2409,62 +2432,52 @@ class Loader {
 		} else {
 			this.resources[key] = resource;
 			this.loadingResources[key] = this.resources[key];
-		}
-	}
-
-	get finished() {
-		/*	For each loading resource, we check if it is loaded or failed. If loaded, add it to
-		 	our running collection of loaded resources, if failed do the same with our failed resources.
-			We know if everything has been loaded if our loadedResources is the same size as our
-			resources.
-		*/
-		for (let name in this.loadingResources) {
-			if (this.loadingResources[name].loaded()) {
-				this.loadedResources[name] = this.resources[name];
-				delete this.loadingResources[name];
-			}
-			else if (this.loadingResources[name].failed()) {
-				this.failedResources[name] = this.resources[name];
-				delete this.loadingResources[name];
-			}
-		}
-		return Object.keys(this.loadedResources).length === Object.keys(this.resources).length;
-	}
-
-	/*	Use this method for starting your game loop. The callback parameter will be called if
-	 *	all resources are loaded OR failed. Make sure to check if any resources have failed to
-	 *	load before beginning your loop. An argument containing the object of failed resources
-	 *	is passed to the callback function (will be empty if all resources loaded successfully,
-	 *	but remember that {} will be handled as a true statement. Use Object.keys(arg).length
-	 *	to check if an error occurred.
-	 *	
-	 *	loader.waitUntilLoaded((err)=>{
-	 *		if (Object.keys(err).length) {
-	 *			console.error("Failed to load resources:", err);
-	 *			return;
-	 *		}
-	 *		// handle game start, here
-	 *	});
-	 *
-	*/
-	waitUntilLoaded(callback, interval, timeoutLength) {
-		let t = 0;
-		let loader = this;
-		interval = interval || 100;
-
-		if (loader.finished) {
-			// do an initial check, since setInterval waits until after the first iteration to
-			// run the function
-			callback(loader.failedResources);
-		} else {
-			let loadInterval = setInterval(() => {
-				t += interval;
-				if (loader.finished || t >= (timeoutLength || 20000)) {
-					clearInterval(loadInterval);
-					callback(loader.failedResources);
+			if (resource.loaded) {
+				this.loadedResources[key] = this.resources[key];
+			} else if (resource.failed) {
+				this.failedResources[key] = this.resources[key];
+			} else {
+				resource.onLoad = ()=>{
+					this.loadedResources[key] = this.resources[key];
+					if (this.size != null && Object.keys(this.loadedResources).length === this.size) {
+						// this is the last resource
+						this.onLoad();
+					}
 				}
-			}, interval);
+				resource.onError = (ev)=>{
+					this.failedResources[key] = this.resources[key];
+					this.onError(ev);
+				}
+			}
 		}
+	}
+
+	load() {
+		this.size = Object.keys(this.resources).length;
+	}
+
+	/*
+	 *	Override this method for beginning your game. Use the example below for an idea
+	 *	of implementation.
+	 *	
+	 *	loader.onLoad = ()=>{
+	 *		// handle game initialization here
+	 *	}
+	 */
+	onLoad() {
+		console.warn("Loader finished but onLoad was not overridden");
+	}
+
+	/*
+	 *	Override this method for catching when resources fail. Use the example below for an idea
+	 *	of implementation.
+	 *	
+	 *	loader.onError = (err)=>{
+	 *		// handle game failure here
+	 *	}
+	 */
+	onError(err) {
+		console.warn("Loader failed but onError was not overridden");
 	}
 }
 
@@ -2741,6 +2754,11 @@ class PhysicsCollider extends Collider {
 }
 
 class PhysicsEngine {
+	/*
+		PhysicsEngine.rigidbodies = [];
+		PhysicsEngine.colliders = [];
+		PhysicsEngine.constantForce = Vector2.zero;
+	*/
 	static update(dt) {
 		for (const rigidbody of PhysicsEngine.rigidbodies) {
 			if (rigidbody.enabled === true) {
@@ -3307,7 +3325,7 @@ class Util {
 
 
 class Game {
-	constructor(canvasDOM, inputTarget) {
+	constructor(canvasDOM, inputTarget, size) {
 		if (Game.instance !== null) {
 			console.error("Only one instance of Game is allowed");
 			return;
@@ -3327,7 +3345,7 @@ class Game {
 		this.paused = false;
 		this.running = false;
 
-		this.player = new Player(canvasDOM);
+		this.player = new Player(canvasDOM, size);
 		this.inputTarget = inputTarget || canvasDOM;
 		Input.createEventListeners(this.inputTarget);
 	}
@@ -3414,23 +3432,52 @@ class Game {
 Game.instance = null;
 
 class Player {
-	constructor(canvas) {
+	constructor(canvas, size) {
 		this.canvas = canvas;
 		this.context = canvas.getContext('2d');
 		this.canvas.style.position = "absolute";
-		this.originalSize = new Vector2(canvas.width, canvas.height);
+
+		canvas.width = size.x;
+		canvas.height = size.y;
+
+		this.originalSize = size;
 		this.aspectRatio = 2 / 3;
 		this._scale = new Vector2(1, 1);
-		canvas.style.width = canvas.width+"px";
-		canvas.style.height = canvas.height+"px";
+		
 		this.resizeMode = Player.RESIZE_SCALE;
 		this.autoResize = true;
+
+		this.size = size.copy();
+		
 		window.addEventListener("resize", (e)=>{
 			this.onResize(e);
 		});
+		this.onResize();
+
 	}
 
 	onResize(e) {
+		//TODO: Replace the rescale() code with this?
+		let scaleX = window.innerWidth / canvas.width;
+		let scaleY = window.innerHeight / canvas.height;
+
+		let scaleToFit = Math.min(scaleX, scaleY);
+		let scaleToCover = Math.max(scaleX, scaleY);
+
+		this.canvas.style.transformOrigin = '0 0'; //scale from top left
+		this.canvas.style.transform = 'scale(' + scaleToFit + ')';
+
+		this.canvas.style.left = `${Math.round((window.innerWidth - (canvas.width * scaleToFit)) / 2)}px`;
+		this.canvas.style.top = `${Math.round((window.innerHeight - (canvas.height * scaleToFit)) / 2)}px`;
+		
+		this.size.x = Math.round(canvas.width * scaleToFit);
+		this.size.y = Math.round(canvas.height * scaleToFit);
+
+		this._scale.x = scaleToFit;
+		this._scale.y = scaleToFit;
+
+		/*
+
 		if (this.autoResize) {
 			if (this.resizeMode === Player.RESIZE_FILL) {
 				this.resize();
@@ -3440,6 +3487,7 @@ class Player {
 				// do nothing
 			}
 		}
+		*/
 	}
 
 	get scale() {
@@ -3461,7 +3509,7 @@ class Player {
 			this._scale.mult(scale);
 		}
 	}
-
+	/*
 	get size() {
 		return new Vector2(	this.canvas.style.width.split('px')[0], 
 							this.canvas.style.height.split('px')[0]);
@@ -3470,6 +3518,7 @@ class Player {
 		this.canvas.style.width = size.x+"px";
 		this.canvas.style.height = size.y+"px";
 	}
+	*/
 
 	isMobile() {
 		let mobileChecks = {
@@ -3530,6 +3579,45 @@ Player.RESIZE_FILL = 'fill';
 Player.RESIZE_SCALE = 'scale';
 Player.RESIZE_NONE = 'none';
 
+
+class Tile {
+	constructor(key, sprite) {
+		this.sprite = sprite;
+		this.key = key;
+	}
+}
+
+/**
+ * Class for a tile map. TileMaps allow the creation of a static set of Sprites
+ * that will be drawn to the screen using a backbuffer. Use this in the cases
+ * where the TileMap contents will not change from frame to frame. This increases
+ * performance because drawing a single buffer to the canvas is faster than
+ * drawing each individual tile.
+ * 
+ * 0 0 0 0 0
+ * 0 0 1 2 0
+ * 1 1 2 3 0
+ * 0 2 4 3 1
+ * 0 0 0 0 0
+ * 
+ * Each key is associated with a single Tile, which is drawn on to a backbuffer 
+ * at every position its key is found. This is done at creation. Then the buffer
+ * is drawn
+ *
+ * @class      TileMap (name)
+ */
+class TileMap extends GameObject {
+	constructor(transform, tileList) {
+		super(transform, false);
+		/*
+			tileList = [
+				{'col'		: Number,
+				 'row'		: Number,
+				 'sprite'	: Sprite}
+			]
+		*/
+	}
+}
 
 if (typeof module !== 'undefined') {
 	module.exports = {
