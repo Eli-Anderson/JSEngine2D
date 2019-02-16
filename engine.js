@@ -1839,7 +1839,9 @@ class Input {
 			Input.keys[key] = new InputKey(key)
 		}
 		if (inputType === Input.KEYDOWN) {
-			Input.keys[key].down = true
+			Input.keys[key].down = true;
+
+			Input.downKeys[key] = true;
 
 		} else if (inputType === Input.KEYUP) {
 			Input.keys[key].up = true;
@@ -1847,6 +1849,8 @@ class Input {
 			Input.keys[key].pressed = false;
 			Input.keys[key].wasPressed = false;
 			Input.keys[key].wasReleased = true;
+
+			delete Input.downKeys[key];
 		}
 	}
 
@@ -1955,7 +1959,6 @@ Input._MOUSEUP = 'up';
 Input._MOUSEDOWN = 'down';
 Input._MOUSEDBLDOWN = 'dblDown';
 
-Input.inputData = {};
 Input.KEYDOWN = 'keydown';
 Input.KEYUP = 'keyup';
 Input.SPACE = ' ';
@@ -1982,6 +1985,7 @@ Input.keys = {
 	'Meta': new InputKey('Meta'),
 	'Tab': new InputKey('Tab'),
 };
+Input.downKeys = {}
 class Draggable extends Button {
 	constructor() {
 		super();
@@ -3579,6 +3583,30 @@ Player.RESIZE_FILL = 'fill';
 Player.RESIZE_SCALE = 'scale';
 Player.RESIZE_NONE = 'none';
 
+
+class TextInput extends GameObject {
+	constructor(transform, isUI=false) {
+		super(transform, isUI);
+		this.focused = false;
+		this.addComponent(new TextRenderer("", new Font()));
+		this.addComponent(new Button());
+		let btn = this.getComponent(Button);
+		btn.onClick = ()=>{
+			this.focused = true;
+		}
+	}
+
+	update() {
+		for (let key in Input.downKeys) {
+			if (key.match(/[a-z]/i)) {
+				// is a letter
+			}
+			if (Input.keys[key].wasPressed) {
+				this.getComponent(TextRenderer).text += key;
+			}
+		}
+	}
+}
 
 class Tile {
 	constructor(key, sprite) {
