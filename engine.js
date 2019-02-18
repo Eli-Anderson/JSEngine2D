@@ -2571,6 +2571,12 @@ class CircleSprite extends Sprite {
 	}
 }
 
+/**
+ * Class for rendering text. Use {Font.BOLD} or a similar command to use in-line
+ * styling.
+ *
+ * @class      TextRenderer (name)
+ */
 class TextRenderer extends Component {
 	constructor(text, font) {
 		super();
@@ -2579,7 +2585,6 @@ class TextRenderer extends Component {
 		this.noStyleText = "";
 		this.text = text || "";
 		this.font = font || new Font("Courier", 16, Color.BLACK, Font.LEFT, Font.CENTERED);
-		console.log(this)
 	}
 
 	get text() {
@@ -2644,7 +2649,7 @@ class TextRenderer extends Component {
 					for (let i=0; i < args.length; i++) {
 						let arg = null;
 						try {
-							arg = eval(args[i]); // TODO: Sanitize input, here
+							arg = safeEval(args[i]); // TODO: Sanitize input, here
 						} catch (e) {
 							// do nothing
 						}
@@ -3358,6 +3363,10 @@ class Util {
 		}
 		return result;
 	}
+
+	static safeEval(str) {
+		return Function(`'use strict';return(${str})`)();
+	}
 }
 
 
@@ -3622,13 +3631,14 @@ class TextBox extends GameObject {
 		super(transform, isUI);
 		this.focused = false;
 		this.addComponent(new SpriteRenderer(new Sprite(Color.GRAY)));
-		//name, size, color, alignment, vertAlignment
+
 		this.addComponent(new TextRenderer("", new Font("Courier", transform.height, Color.GREEN, Font.LEFT, Font.CENTERED)));
 		this.addComponent(new Button());
 
 		this.cursor = new GameObject(new Transform(transform.x, transform.y, transform.z+1, 1, transform.height));
 		this.cursor.addComponent(new SpriteRenderer(new Sprite(new Color(255,0,0,0.5))));
 
+		this.maxLength = Math.floor(this.transform.width / (transform.height * (3/5)));
 
 
 		this.cursorIndex = 0;
@@ -3637,38 +3647,56 @@ class TextBox extends GameObject {
 		this.getComponent(Button).onClick = ()=>{
 			this.focused = true;
 		}
+
+		this.timeHoldPerChar = 0.5;
+		this.timeHeld = this.timeHoldPerChar;
+		this.timeHoldMultRate = 0.8;
 	}
 
-	update() {
+	update(dt) {
 		let tr = this.getComponent(TextRenderer);
 		for (let key in Input.downKeys) {
-			if (key.length === 1) {
-				// is a single character that we can show
-				if (Input.keys[key].pressed) {
-					tr.text = 	tr.text.substring(0, this.cursorIndex) +
-								key +
-								tr.text.substring(this.cursorIndex, tr.text.length);
-					this.cursorIndex++;
-					this.cursor.transform.x += 3 * (this.transform.height / 5); // TODO: Yikes
-				}
+			if (Input.keys[key].pressed) {
+				this.timeHoldPerChar = 0.5;
+				this.timeHeld = 0.5;
 			} else {
-				if (Input.keys[key].pressed) {
-					if (key === 'Backspace') {
-						if (tr.text.length > 0 && this.cursorIndex > 0) {
-							this.cursorIndex--;
-							this.cursor.transform.x -= 3 * (this.transform.height / 5); // TODO: Yikes
-							tr.text = 	tr.text.substring(0, this.cursorIndex) + 
-										tr.text.substring(this.cursorIndex+1, tr.text.length);
-						}
-					} else if (key === 'ArrowLeft') {
-						if (this.cursorIndex > 0) {
-							this.cursorIndex--;
-							this.cursor.transform.x -= 3 * (this.transform.height / 5); // TODO: Yikes
-						}
-					} else if (key === 'ArrowRight') {
-						if (this.cursorIndex < tr.text.length) {
+				this.timeHeld += dt;
+			}
+			if (this.timeHeld >= this.timeHoldPerChar) {
+				this.timeHeld = 0.0;
+				if (this.timeHoldPerChar > 0.05) this.timeHoldPerChar *= this.timeHoldMultRate;
+
+
+				if (key.length === 1) {
+					// is a single character that we can show
+					if (tr.text.length < this.maxLength) {
+						if (Input.keys[key].down) {
+							tr.text = 	tr.text.substring(0, this.cursorIndex) +
+										key +
+										tr.text.substring(this.cursorIndex, tr.text.length);
 							this.cursorIndex++;
-							this.cursor.transform.x += 3 * (this.transform.height / 5); // TODO: Yikes
+							this.cursor.transform.x += this.transform.height * (3/5); // TODO: Yikes
+						}
+					}
+				} else {
+					if (Input.keys[key].down) {
+						if (key === 'Backspace') {
+							if (tr.text.length > 0 && this.cursorIndex > 0) {
+								this.cursorIndex--;
+								this.cursor.transform.x -= this.transform.height * (3/5); // TODO: Yikes
+								tr.text = 	tr.text.substring(0, this.cursorIndex) + 
+											tr.text.substring(this.cursorIndex+1, tr.text.length);
+							}
+						} else if (key === 'ArrowLeft') {
+							if (this.cursorIndex > 0) {
+								this.cursorIndex--;
+								this.cursor.transform.x -= this.transform.height * (3/5); // TODO: Yikes
+							}
+						} else if (key === 'ArrowRight') {
+							if (this.cursorIndex < tr.text.length) {
+								this.cursorIndex++;
+								this.cursor.transform.x += this.transform.height * (3/5); // TODO: Yikes
+							}
 						}
 					}
 				}
