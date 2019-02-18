@@ -1215,7 +1215,7 @@ class GameObject extends Container {
 	addComponent(component) {
 		for (const c of this.components) {
 			if (c instanceof component.constructor) {
-				console.error("GameObject already has a component of type: " + component.constructor);
+				console.error("GameObject already has a component of type: " + component.constructor.name);
 				return;
 			}
 		}
@@ -1828,8 +1828,8 @@ class InputKey {
 		this.down = false;
 		this.up = false;
 		this.pressed = false;
-		this.wasPressed = false;
-		this.wasReleased = false;
+		this._wasPressed = false;
+		this.released = false;
 	}
 }
 
@@ -1839,14 +1839,33 @@ class Input {
 			Input.keys[key] = new InputKey(key)
 		}
 		if (inputType === Input.KEYDOWN) {
-			Input.keys[key].down = true
+			Input.keys[key].down = true;
+
+			Input.downKeys[key] = true;
 
 		} else if (inputType === Input.KEYUP) {
-			Input.keys[key].up = true;
-			Input.keys[key].down = false;
-			Input.keys[key].pressed = false;
-			Input.keys[key].wasPressed = false;
-			Input.keys[key].wasReleased = true;
+			if (key in Input.downKeys) {
+				Input.keys[key].up = true;
+				Input.keys[key].down = false;
+				Input.keys[key].pressed = false;
+				Input.keys[key]._wasPressed = false;
+				Input.keys[key].released = true;
+
+				delete Input.downKeys[key];
+			} else if (key.toUpperCase() in Input.downKeys) {
+				// this is needed for the case where the the user holds
+				// a modifier (shift) and a letter, then releases shift
+				// before releasing the letter. This caused the uppercase
+				// key to never be 'released' or removed from the downKeys
+				// until pressed again.
+				Input.keys[key.toUpperCase()].up = true;
+				Input.keys[key.toUpperCase()].down = false;
+				Input.keys[key.toUpperCase()].pressed = false;
+				Input.keys[key.toUpperCase()]._wasPressed = false;
+				Input.keys[key.toUpperCase()].released = true;
+
+				delete Input.downKeys[key.toUpperCase()];
+			}
 		}
 	}
 
@@ -1856,13 +1875,13 @@ class Input {
 			if (key.down) {
 				if (key.pressed) {
 					key.pressed = false;
-				} else if (!key.wasPressed) {
+				} else if (!key._wasPressed) {
 					key.pressed = true;
-					key.wasPressed = true;
+					key._wasPressed = true;
 				}
 			} else if (key.up) {
-				if (key.wasReleased) {
-					key.wasReleased = false;
+				if (key.released) {
+					key.released = false;
 				} else {
 					key.up = false;
 				}
@@ -1955,7 +1974,6 @@ Input._MOUSEUP = 'up';
 Input._MOUSEDOWN = 'down';
 Input._MOUSEDBLDOWN = 'dblDown';
 
-Input.inputData = {};
 Input.KEYDOWN = 'keydown';
 Input.KEYUP = 'keyup';
 Input.SPACE = ' ';
@@ -1977,11 +1995,14 @@ Input.keys = {
 	'=': new InputKey('='), '`': new InputKey('`'),
 	'Escape': new InputKey('Escape'),
 	'Shift': new InputKey('Shift'),
-	[Input.SPACE]: new InputKey(Input.SPACE),
+	' ': new InputKey(' '),
 	'Enter': new InputKey('Enter'),
 	'Meta': new InputKey('Meta'),
+	'Alt': new InputKey('Alt'),
 	'Tab': new InputKey('Tab'),
+	'Backspace': new InputKey('Backspace'),
 };
+Input.downKeys = {}
 class Draggable extends Button {
 	constructor() {
 		super();
@@ -2550,6 +2571,12 @@ class CircleSprite extends Sprite {
 	}
 }
 
+/**
+ * Class for rendering text. Use {Font.BOLD} or a similar command to use in-line
+ * styling.
+ *
+ * @class      TextRenderer (name)
+ */
 class TextRenderer extends Component {
 	constructor(text, font) {
 		super();
@@ -2557,7 +2584,7 @@ class TextRenderer extends Component {
 		this._splitLines = [];
 		this.noStyleText = "";
 		this.text = text || "";
-		this.font = font || new Font("Arial", 16, Color.BLACK, 'left', 'bottom');
+		this.font = font || new Font("Courier", 16, Color.BLACK, Font.LEFT, Font.CENTERED);
 	}
 
 	get text() {
@@ -2575,15 +2602,16 @@ class TextRenderer extends Component {
 		this._text = text.toString();
 
 		let openIndex = this._text.indexOf("{");
-		if (openIndex > 0) {
+		let closeIndex = this._text.indexOf("}");
+		if (openIndex >= 0 && closeIndex > openIndex) {
 			this._splitLines.push(["", this._text.substring(0, openIndex).split("\n")]);
 			this.noStyleText += this._text.substring(0, openIndex);
 		} else {
 			this._splitLines.push(["", this._text.split("\n")]);
 			this.noStyleText += this._text;
 		}
-
-		while (openIndex >= 0) {
+		
+		while (openIndex >= 0 && closeIndex > openIndex) {
 			let closeIndex = this._text.indexOf("}", openIndex+1);
 
 			let nextOpenIndex = this._text.indexOf("{", openIndex+1);
@@ -2594,6 +2622,7 @@ class TextRenderer extends Component {
 			this.noStyleText += this._text.substring(closeIndex+1, nextOpenIndex >= 0 ? nextOpenIndex : this._text.length);
 			openIndex = nextOpenIndex;
 		}
+		
 	}
 
 	set font(font) {
@@ -2609,21 +2638,29 @@ class TextRenderer extends Component {
 
 			let vAlign = 0;
 
-			if (this.font.vertAlignment === 'center') 		// set vAlign to the center of the gameObject
+			if (this.font.vertAlignment === Font.CENTERED) 		// set vAlign to the center of the gameObject
 				vAlign = (this.gameObject.transform.height / 2) + (this.font.size / 2);
-			else if (this.font.vertAlignment === 'bottom') 	// set vAlign to the bottom of gameObject
+			else if (this.font.vertAlignment === Font.BOTTOM) 	// set vAlign to the bottom of gameObject
 				vAlign = this.gameObject.transform.height;
 
 			for (const line of this._splitLines) {
 				if (line[0].length > 2) {
-					let arg = eval(line[0]);
-					if (arg instanceof Color)
-						context.fillStyle = arg;
-					else if (arg === Font.BOLD || arg === Font.ITALIC || arg === Font.NORMAL)
-						context.font = arg + ' ' + this.font;
-					else if (arg === Font.RESET) {
-						context.font = this.font;
-						context.fillStyle = this.font.color;
+					let args = line[0].split(';');
+					for (let i=0; i < args.length; i++) {
+						let arg = null;
+						try {
+							arg = safeEval(args[i]); // TODO: Sanitize input, here
+						} catch (e) {
+							// do nothing
+						}
+						if (arg instanceof Color)
+							context.fillStyle = arg;
+						else if (arg === Font.BOLD || arg === Font.ITALIC || arg === Font.NORMAL)
+							context.font = arg + ' ' + this.font;
+						else if (arg === Font.RESET) {
+							context.font = this.font;
+							context.fillStyle = this.font.color;
+						}
 					}
 				} else {
 					context.fillStyle = this.font.color;
@@ -2636,14 +2673,14 @@ class TextRenderer extends Component {
 					}
 					let hAlign = 0;
 
-					if (this.font.alignment === 'center') {
-
-						hAlign -= ctx.measureText(splitText[lineIndex]).width / 2;
+					if (this.font.alignment === Font.CENTERED) {
+						// TODO: Can we move the measureText outside of the draw method?
+						hAlign -= context.measureText(splitText[lineIndex]).width / 2;
 						hAlign += this.gameObject.transform.width / 2;
 
-					} else if (this.font.alignment === 'right') {
+					} else if (this.font.alignment === Font.RIGHT) {
 
-						hAlign -= ctx.measureText(splitText[lineIndex]).width;
+						hAlign -= context.measureText(splitText[lineIndex]).width;
 						hAlign += this.gameObject.transform.width;
 					}
 
@@ -2662,8 +2699,8 @@ class Font {
 		this._name = name || 'Arial';
 		this._size = size || 12;
 		this._color = color || Color.BLACK;
-		this._alignment = alignment || 'left';
-		this._vertAlignment = vertAlignment || 'top';
+		this._alignment = alignment || Font.LEFT;
+		this._vertAlignment = vertAlignment || Font.TOP;
 	}
 
 	get name() {
@@ -2714,6 +2751,11 @@ Font.BOLD = 'bold';
 Font.ITALIC = 'italic';
 Font.NORMAL = 'normal';
 Font.RESET = 'reset';
+Font.CENTERED = 'centered';
+Font.RIGHT = 'right';
+Font.LEFT = 'left';
+Font.TOP = 'top';
+Font.BOTTOM = 'bottom';
 
 class PhysicsCollider extends Collider {
 	constructor(bound, layer, bounciness, slickness) {
@@ -3321,6 +3363,10 @@ class Util {
 		}
 		return result;
 	}
+
+	static safeEval(str) {
+		return Function(`'use strict';return(${str})`)();
+	}
 }
 
 
@@ -3579,6 +3625,85 @@ Player.RESIZE_FILL = 'fill';
 Player.RESIZE_SCALE = 'scale';
 Player.RESIZE_NONE = 'none';
 
+
+class TextBox extends GameObject {
+	constructor(transform, isUI=false) {
+		super(transform, isUI);
+		this.focused = false;
+		this.addComponent(new SpriteRenderer(new Sprite(Color.GRAY)));
+
+		this.addComponent(new TextRenderer("", new Font("Courier", transform.height, Color.GREEN, Font.LEFT, Font.CENTERED)));
+		this.addComponent(new Button());
+
+		this.cursor = new GameObject(new Transform(transform.x, transform.y, transform.z+1, 1, transform.height));
+		this.cursor.addComponent(new SpriteRenderer(new Sprite(new Color(255,0,0,0.5))));
+
+		this.maxLength = Math.floor(this.transform.width / (transform.height * (3/5)));
+
+
+		this.cursorIndex = 0;
+		this.add(this.cursor);
+
+		this.getComponent(Button).onClick = ()=>{
+			this.focused = true;
+		}
+
+		this.timeHoldPerChar = 0.5;
+		this.timeHeld = this.timeHoldPerChar;
+		this.timeHoldMultRate = 0.8;
+	}
+
+	update(dt) {
+		let tr = this.getComponent(TextRenderer);
+		for (let key in Input.downKeys) {
+			if (Input.keys[key].pressed) {
+				this.timeHoldPerChar = 0.5;
+				this.timeHeld = 0.5;
+			} else {
+				this.timeHeld += dt;
+			}
+			if (this.timeHeld >= this.timeHoldPerChar) {
+				this.timeHeld = 0.0;
+				if (this.timeHoldPerChar > 0.05) this.timeHoldPerChar *= this.timeHoldMultRate;
+
+
+				if (key.length === 1) {
+					// is a single character that we can show
+					if (tr.text.length < this.maxLength) {
+						if (Input.keys[key].down) {
+							tr.text = 	tr.text.substring(0, this.cursorIndex) +
+										key +
+										tr.text.substring(this.cursorIndex, tr.text.length);
+							this.cursorIndex++;
+							this.cursor.transform.x += this.transform.height * (3/5); // TODO: Yikes
+						}
+					}
+				} else {
+					if (Input.keys[key].down) {
+						if (key === 'Backspace') {
+							if (tr.text.length > 0 && this.cursorIndex > 0) {
+								this.cursorIndex--;
+								this.cursor.transform.x -= this.transform.height * (3/5); // TODO: Yikes
+								tr.text = 	tr.text.substring(0, this.cursorIndex) + 
+											tr.text.substring(this.cursorIndex+1, tr.text.length);
+							}
+						} else if (key === 'ArrowLeft') {
+							if (this.cursorIndex > 0) {
+								this.cursorIndex--;
+								this.cursor.transform.x -= this.transform.height * (3/5); // TODO: Yikes
+							}
+						} else if (key === 'ArrowRight') {
+							if (this.cursorIndex < tr.text.length) {
+								this.cursorIndex++;
+								this.cursor.transform.x += this.transform.height * (3/5); // TODO: Yikes
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
 
 class Tile {
 	constructor(key, sprite) {
