@@ -10,7 +10,7 @@
  * @param a {number} [0,1] The alpha component of the color
  */
 class Color {
-	constructor(r, g, b, a = 1) {
+	constructor({r=0, g=0, b=0, a=1}) {
 		this.r = r;
 		this.g = g;
 		this.b = b;
@@ -75,7 +75,7 @@ class Color {
 	 * @returns {Color}
 	 */
 	static get BLACK() {
-		return new Color(0,0,0,1);
+		return new Color({'r':0,'g':0,'b':0,'a':1});
 	}
 
 	/**
@@ -83,7 +83,7 @@ class Color {
 	 * @returns {Color}
 	 */
 	static get WHITE() {
-		return new Color(255,255,255,1);
+		return new Color({'r':255,'g':255,'b':255,'a':1});
 	}
 
 	/**
@@ -91,7 +91,7 @@ class Color {
 	 * @returns {Color}
 	 */
 	static get RED() {
-		return new Color(255,0,0,1);
+		return new Color({'r':255,'g':0,'b':0,'a':1});
 	}
 
 	/**
@@ -99,7 +99,7 @@ class Color {
 	 * @returns {Color}
 	 */
 	static get GREEN() {
-		return new Color(0,255,0,1);
+		return new Color({'r':0,'g':255,'b':0,'a':1});
 	}
 
 	/**
@@ -107,7 +107,7 @@ class Color {
 	 * @returns {Color}
 	 */
 	static get BLUE() {
-		return new Color(0,0,255,1);
+		return new Color({'r':0,'g':0,'b':255,'a':1});
 	}
 
 	/**
@@ -115,7 +115,7 @@ class Color {
 	 * @returns {Color}
 	 */
 	static get GRAY() {
-		return new Color(180,180,180,1);
+		return new Color({'r':180,'g':180,'b':180,'a':1});
 	}
 
 	/**
@@ -123,7 +123,7 @@ class Color {
 	 * @returns {Color}
 	 */
 	static get PURPLE() {
-		return new Color(255,0,255,1);
+		return new Color({'r':255,'g':0,'b':255,'a':1});
 	}
 
 	/**
@@ -131,7 +131,7 @@ class Color {
 	 * @returns {Color}
 	 */
 	static get YELLOW() {
-		return new Color(255,255,0,1);
+		return new Color({'r':255,'g':255,'b':0,'a':1});
 	}
 
 	/**
@@ -139,7 +139,7 @@ class Color {
 	 * @returns {Color}
 	 */
 	static get ORANGE() {
-		return new Color(255,165,0,1);
+		return new Color({'r':255,'g':165,'b':0,'a':1});
 	}
 
 	/**
@@ -147,7 +147,7 @@ class Color {
 	 * @returns {Color}
 	 */
 	static get TEAL() {
-		return new Color(0,255,255,1);
+		return new Color({'r':0,'g':255,'b':255,'a':1});
 	}
 
 	/**
@@ -155,7 +155,7 @@ class Color {
 	 * @returns {Color}
 	 */
 	static get BROWN() {
-		return new Color(139,69,19,1);
+		return new Color({'r':139,'g':69,'b':19,'a':1});
 	}
 
 	/**
@@ -166,7 +166,8 @@ class Color {
 		let r = Util.randRange(0, 256);
 		let g = Util.randRange(0, 256);
 		let b = Util.randRange(0, 256);
-		return new Color(r,g,b,1);
+		let a = 1;
+		return new Color({r,g,b,a});
 	}
 
 }
@@ -180,25 +181,9 @@ class Vector2 {
 	 * @param x {Number} The x component of the vector
 	 * @param y {Number} The y component of the vector
 	 */
-	constructor(x, y) {
-		this._x = x || 0;
-		this._y = y || 0;
-	}
-
-	get x() {
-		return this._x;
-	}
-
-	get y() {
-		return this._y;
-	}
-
-	set x(x) {
-		this._x = x;
-	}
-
-	set y(y) {
-		this._y = y;
+	constructor({x=0, y=0}) {
+		this.x = x;
+		this.y = y;
 	}
 
 	/**
@@ -231,7 +216,7 @@ class Vector2 {
 	 * @returns {Vector2}
 	 */
 	get normal() {
-		return new Vector2(-this.y, this.x);
+		return new Vector2({'x':-this.y, 'y':this.x});
 	}
 
 	/**
@@ -239,7 +224,7 @@ class Vector2 {
 	 * @returns {Vector2}
 	 */
 	get rounded() {
-		return new Vector2(Math.round(this.x), Math.round(this.y));
+		return new Vector2({'x':Math.round(this.x), 'y':Math.round(this.y)});
 	}
 
 
@@ -294,6 +279,24 @@ class Vector2 {
 		} else if (!isNaN(k)) {
 			this.x *= k;
 			this.y *= k
+		}
+		return this;
+	}
+
+	/**
+	 * Divides this Vector2 by a scalar value or a Vector2 and returns it.
+	 * If k is a Vector2, the X components are divided and the Y components
+	 * are divided (does not do dot product math).
+	 * @param k
+	 * @returns {Vector2}
+	 */
+	div(k) {
+		if (k instanceof Vector2) {
+			this.x /= k.x;
+			this.y /= k.y
+		} else if (!isNaN(k)) {
+			this.x /= k;
+			this.y /= k
 		}
 		return this;
 	}
@@ -376,7 +379,7 @@ class Vector2 {
 	static lerp(start, destination, t) {
 		if (t > 1) t = 1;
 		if (t < 0) t = 0;
-		let result = new Vector2(0, 0);
+		let result = Vector2.zero;
 		result.x = start.x + ((destination.x - start.x) * t);
 		result.y = start.y + ((destination.y - start.y) * t);
 		return result;
@@ -389,7 +392,9 @@ class Vector2 {
 	 * @returns {Vector2}
 	 */
 	static sub(a, b) {
-		return new Vector2(a.x - b.x, a.y - b.y);
+		let x = a.x - b.x;
+		let y = a.y - b.y;
+		return new Vector2({x, y});
 	}
 
 	/**
@@ -399,17 +404,21 @@ class Vector2 {
 	 * @returns {Vector2}
 	 */
 	static add(a, b) {
+		let x = y = 0;
 		if (a instanceof Vector2) {
 			if (b instanceof Vector2) {
-				return new Vector2(a.x + b.x, a.y + b.y);
+				x = a.x + b.x;
+				y = a.y + b.y;
 			}
-			return new Vector2(a.x + b, a.y + b);
+			x = a.x + b;
+			y = a.y + b;
 		}
 		if (b instanceof Vector2) {
-			return new Vector2(b.x + a, b.y + a);
+			x = b.x + a
+			y = b.y + a;
 		}
 		console.error("Attempted to call Vector2.add without a Vector2 as a parameter");
-		return null;
+		return new Vector2({x, y});
 	}
 
 	/**
@@ -421,18 +430,23 @@ class Vector2 {
 	 * @returns {Vector2}
 	 */
 	static mult(a, b) {
+		let x = 0;
+		let y = 0;
 		if (a instanceof Vector2) {
 			if (b instanceof Vector2) {
-				return new Vector2(a.x * b.x, a.y * b.y);
+				x = a.x * b.x;
+				y = a.y * b.y;
+			} else if (!isNaN(b)) {
+				x = a.x * b;
+				y = a.y * b;
+			} else {
+				console.error("The second argument of Vector2.mult should be a Vector or a Number", b);
 			}
-			return new Vector2(a.x * b, a.y * b);
-		}
-		if (b instanceof Vector2) {
-			return new Vector2(b.x * a, b.y * a);
+		} else {
+			console.error("The first argument of Vector2.mult should be a Vector2", a);
 		}
 
-		console.error("Attempted to call Vector2.mult without a Vector2 as a parameter");
-		return null;
+		return new Vector2({x, y});
 	}
 
 	/**
@@ -444,28 +458,34 @@ class Vector2 {
 	 * @returns {Vector2}
 	 */
 	static div(a, b) {
+		let x = 0;
+		let y = 0;
 		if (b instanceof Vector2) {
-			return new Vector2(a.x / b.x, a.y / b.y);
+			x = a.x / b.x;
+			y = a.y / b.y;
+		} else if (isNan(b) === false) {
+			x = a.x / b;
+			y = a.y / b;
 		}
-		return new Vector2(a.x / b, a.y / b);
+		return new Vector2({x, y});
 	}
 
 	/**
-	 * Returns a new Vector2 zeroed out. Shorthand for 'new Vector2(0, 0)'
+	 * Returns a new Vector2 zeroed out. Shorthand for 'new Vector2({'x':0, 'y':0})'
 	 * @returns {Vector2}
 	 */
-	static get zero() {return new Vector2(0, 0);}
-	static get right() {return new Vector2(1, 0);}
-	static get left() {return new Vector2(-1, 0);}
-	static get up() {return new Vector2(0, -1);}
-	static get down() {return new Vector2(0, 1);}
+	static get zero() {return new Vector2({'x':0, 'y':0})}
+	static get right() {return new Vector2({'x':1, 'y':0})}
+	static get left() {return new Vector2({'x':-1, 'y':0})}
+	static get up() {return new Vector2({'x':0, 'y':-1})}
+	static get down() {return new Vector2({'x':0, 'y':1})}
 
 	/**
 	 * Returns a copy of this Vector2
 	 * @returns {Vector2}
 	 */
 	copy() {
-		return new Vector2(this.x, this.y);
+		return new Vector2({'x':this.x, 'y':this.y});
 	}
 
 	/**
@@ -473,7 +493,7 @@ class Vector2 {
 	 * @returns {Vector3}
 	 */
 	toVector3() {
-		return new Vector3(this.x, this.y, 0);
+		return new Vector3({'x':this.x, 'y':this.y});
 	}
 
 	/**
@@ -497,26 +517,11 @@ class Vector3 extends Vector2 {
 	 * @param y {number}
 	 * @param z {number} optional
 	 */
-	constructor(x, y, z) {
-		super(0,0);
-		if (x instanceof Vector2) {
-			this.x = x.x;
-			this.y = x.y;
-			this.z = y || 0;
-		} else {
-			this.x = x;
-			this.y = y;
-			this.z = z || 0;
-		}
+	constructor({x=0, y=0, z=0}) {
+		super({x,y});
+		this.z = z;
 	}
 
-	get z() {
-		return this._z;
-	}
-
-	set z(z) {
-		this._z = z;
-	}
 	/**
 	 * Get the magnitude (length) of the Vector3.
 	 *
@@ -604,39 +609,41 @@ class Vector3 extends Vector2 {
 	}
 
 	toVector2() {
-		return new Vector2(this.x, this.y);
+		return new Vector2({'x':this.x, 'y':this.y});
 	}
 
 	copy() {
-		return new Vector3(this.x, this.y, this.z);
+		return new Vector3({'x':this.x, 'y':this.y, 'z':this.z});
 	}
 
 	static sub(a, b) {
-		return new Vector3(a.x - b.x, a.y - b.y, a.z - (b.z || 0));
+		// TODO: do we want to allow 'b' to be something other than a Vector, here?
+		return new Vector3({'x':a.x - b.x, 'y':a.y - b.y, 'z':a.z - (b.z || 0)});
 	}
 
 	static add(a, b) {
-		return new Vector3(a.x + b.x, a.y + b.y, a.z + (b.z || 0));
+		// TODO: do we want to allow 'b' to be something other than a Vector, here?
+		return new Vector3({'x':a.x + b.x, 'y':a.y + b.y, 'z':a.z + (b.z || 0)});
 	}
 
 	static mult(a, b) {
 		if (b.constructor === Vector3) {
-			return new Vector3(a.x * b.x, a.y * b.y, a.z * b.z);
-		} else if (b.constructor === Number) {
-			return new Vector3(a.x * b, a.y * b, a.z * b);
+			return new Vector3({'x':a.x * b.x, 'y':a.y * b.y, 'z':a.z * b.z});
+		} else if (isNaN(b) === false) {
+			return new Vector3({'x':a.x * b, 'y':a.y * b, 'z':a.z * b});
 		}
 
 	}
 
 	static div(a, b) {
 		if (b.constructor === Vector3) {
-			return new Vector3(a.x / b.x, a.y / b.y, a.z / b.z);
-		} else if (b.constructor === Number) {
-			return new Vector3(a.x / b, a.y / b, a.z / b);
+			return new Vector3({'x':a.x / b.x, 'y':a.y / b.y, 'z':a.z / b.z});
+		} else if (isNaN(b) === false) {
+			return new Vector3({'x':a.x / b, 'y':a.y / b, 'z':a.z / b});
 		}
 	}
 
-	static get zero() {return new Vector3(0, 0, 0);}
+	static get zero() {return new Vector3({})}
 }
 
 /**
@@ -644,9 +651,9 @@ class Vector3 extends Vector2 {
  * @class Line
  */
 class Line {
-	constructor(p1, p2) {
-		this.start = p1;
-		this.end = p2;
+	constructor({pointA, pointB}) {
+		this.start = pointA;
+		this.end = pointB;
 	}
 	get length() {
 		return Vector2.sub(this.start, this.end).magnitude;
@@ -655,7 +662,7 @@ class Line {
 		return (this.end.y - this.start.y) / (this.end.x - this.start.x);
 	}
 	get normal() {
-		return new Vector2((this.end.y - this.start.y), -(this.end.x - this.start.x));
+		return new Vector2({'x':(this.end.y - this.start.y), 'y':-(this.end.x - this.start.x)});
 	}
 }
 
@@ -664,22 +671,14 @@ class Line {
  * @class Rect
  */
 class Rect extends Vector2 {
-	constructor(x, y, width, height) {
-		super(x, y);
-		this._width = width;
-		this._height = height;
-	}
-
-	get width() {
-		return this._width
-	}
-
-	get height() {
-		return this._height
+	constructor({x=0, y=0, width=0, height=0}) {
+		super({x, y});
+		this.width = width;
+		this.height = height;
 	}
 
 	get center() {
-		return new Vector2(this.x + this.width / 2, this.y + this.height / 2)
+		return new Vector2({'x':this.x + this.width / 2, 'y':this.y + this.height / 2})
 	}
 
 	get right() {
@@ -692,34 +691,33 @@ class Rect extends Vector2 {
 
 	get edges() {
 		return {
-			'top': new Line(new Vector2(this.x, this.y), new Vector2(this.right, this.y)),
-			'right': new Line(new Vector2(this.right, this.y), new Vector2(this.right, this.bottom)),
-			'bottom': new Line(new Vector2(this.x, this.bottom), new Vector2(this.right, this.bottom)),
-			'left': new Line(new Vector2(this.x, this.y), new Vector2(this.x, this.bottom))
+			'top': 		new Line({	'pointA':new Vector2({'x':this.x, 'y':this.y}), 
+								 	'pointB':new Vector2({'x':this.right, 'y':this.y})}),
+
+			'right': 	new Line({	'pointA':new Vector2({'x':this.right, 'y':this.y}), 
+								 	'pointB':new Vector2({'x':this.right, 'y':this.bottom})}),
+
+			'bottom': 	new Line({	'pointA':new Vector2({'x':this.x, 'y':this.bottom}), 
+								 	'pointB':new Vector2({'x':this.right, 'y':this.bottom})}),
+
+			'left': 	new Line({	'pointA':new Vector2({'x':this.x, 'y':this.y}), 
+								 	'pointB':new Vector2({'x':this.x, 'y':this.bottom})})
 		}
-	}
-
-	set width(width) {
-		this._width = width
-	}
-
-	set height(height) {
-		this._height = height
 	}
 
 	equals(rect) {
 		return this.x === rect.x &&
 			this.y === rect.y &&
 			this.w === rect.w &&
-			this.h === rect.h
+			this.h === rect.h;
 	}
 
 	toVector2() {
-		return new Vector2(this.x, this.y)
+		return new Vector2({'x':this.x, 'y':this.y});
 	}
 
 	copy() {
-		return new Rect(this.x, this.y, this.width, this.height)
+		return new Rect({'x':this.x, 'y':this.y, 'width':this.width, 'height':this.height});
 	}
 }
 
@@ -727,21 +725,18 @@ class Rect extends Vector2 {
  * A Circle object holding x, y, and r components.
  * @class Circle
  */
-class Circle extends Rect {
-	constructor(x, y, r) {
-		super(x, y, r, r);
+class Circle extends Vector2 {
+	constructor({x=0, y=0, r=0}) {
+		super({x, y});
 		this.r = r;
 	}
 	center() {
-		return new Vector2(this.x, this.y);
+		return new Vector2({'x':this.x, 'y':this.y});
 	}
 	equals(circle) {
 		return this.x === circle.x &&
 		this.y === circle.y &&
 		this.r === circle.r;
-	}
-	get edges() {
-		return {};
 	}
 	get top() {
 		return this.y - this.r;
@@ -771,49 +766,21 @@ class Transform extends Vector3 {
 	 * @param width {number}
 	 * @param height {number}
 	 */
-	constructor(x, y, z, width, height) {
-		super(x, y, z);
+	constructor({x=0, y=0, z=0, width=0, height=0}) {
+		super({x, y, z});
 
-		this._width = width || 1;
-		this._height = height || 1;
-		this._rect = new Rect(x, y, width, height);
+		this.width = width;
+		this.height = height;
+
 		this._rotation = 0;
-		this._scale = new Vector2(1, 1);
+		this.scale = new Vector2({'x':1, 'y':1});
 		this._forward = Vector2.right;
 		this._direction = Vector2.right;
 		this._defaultRotation = Vector2.angleBetween(Vector2.zero, this._forward);
 	}
 
-	get width() {
-		return this._width
-	}
-
-	get height() {
-		return this._height
-	}
-
-	set scale(scale) {
-		this._scale = scale
-	}
-
-	get scale() {
-		return this._scale
-	}
-
 	get rect() {
-		this._rect.x = this.x;
-		this._rect.y = this.y;
-		this._rect.width = this.width;
-		this._rect.height = this.height;
-		return this._rect
-	}
-
-	set width(width) {
-		this._width = width
-	}
-
-	set height(height) {
-		this._height = height
+		return new Rect(this);
 	}
 
 	get rotation() {
@@ -882,19 +849,16 @@ class Transform extends Vector3 {
 	}
 
 	copy() {
-		return new Transform(this.x, this.y, this.z, this.width, this.height)
+		return new Transform(this);
 	}
 
-	static get zero() {return new Transform(0, 0, 0, 0, 0);}
+	static get zero() {return new Transform({});}
 
 }
 
 class Container {
-	constructor(transform) {
+	constructor({transform = Transform.zero}) {
 		// Use default Transform if unspecified
-		if (typeof transform === 'undefined' || transform === null) {
-			transform = new Transform(0,0,0,1,1);
-		};
 		this._transform = transform;
 		this._children = [];
 		this._parent = null;
@@ -928,15 +892,11 @@ class Container {
 	}
 
 	get absolutePosition() {
-		return this.transform
+		return new Vector3(this.transform);
 	}
 
 	set localPosition(position) {
 		this.moveTo(Vector3.add(this.parent.transform, position))
-	}
-
-	set transform(transform) {
-		this._transform = transform
 	}
 
 	set enabled(enabled) {
@@ -1092,7 +1052,7 @@ class Container {
 	}
 
 	moveCenterTo(vector3) {
-		let adjustedPos = Vector2.sub(vector3, new Vector2(this.transform.width / 2, this.transform.height / 2));
+		let adjustedPos = Vector2.sub(vector3, new Vector2({'x':this.transform.width / 2, 'y':this.transform.height / 2}));
 		let positionDifference = Vector3.sub(adjustedPos, this.transform);
 		this.transform.set(adjustedPos);
 		for (const child of this.flattened) {
@@ -1135,9 +1095,14 @@ class Container {
 }
 
 class GameObject extends Container {
-	constructor(transform, isUI) {
-		super(transform);
-		this.isUI = isUI || false;
+	constructor({transform, isUI=false}) {
+		super({transform});
+		if (transform === undefined) {
+			console.warn('GameObject created without a Transform. Using the default ' +
+				'Transform. To use the default Transform explicitly, use ' + 
+				'new GameObject({"transform": new Transform({})})', this);
+		}
+		this.isUI = isUI;
 		this.components = [];
 		this.tag = "";
 	}
@@ -1159,9 +1124,10 @@ class GameObject extends Container {
 			let distanceToChild = Vector2.sub(  this.transform.rect.center,child.transform.rect.center)
 				.magnitude;
 			child.rotation += difference;
-			let newRelativePosition = new Vector2(
-					Math.cos(angleToChild + difference) * distanceToChild,
-					Math.sin(angleToChild + difference) * distanceToChild);
+			let newRelativePosition = new Vector2({
+					'x':Math.cos(angleToChild + difference) * distanceToChild,
+					'y':Math.sin(angleToChild + difference) * distanceToChild
+			});
 			child.moveCenterTo(Vector2.add(this.transform.rect.center, newRelativePosition));
 		}
 	}
@@ -1346,7 +1312,8 @@ class Component {
  * @class      Scene
  */
 class Scene {
-	constructor(key) {
+	constructor({key = "key"}) {
+		if (key === "key") console.error("Scene created with no key");
 		this.key = key;
 		this.mainCamera = null;
 		Scene._scenes[key] = this;
@@ -1678,7 +1645,7 @@ class Button extends InputComponent {
  * @class      Animator (name)
  */
 class Animator extends Component {
-	constructor(frameRate) {
+	constructor({frameRate = 30}) {
 		super();
 		this.frameRate = frameRate;
 		this.frameCounter = 0;
@@ -1724,8 +1691,8 @@ class Animator extends Component {
 }
 
 class Animation {
-	constructor(images) {
-		this.frames = images;
+	constructor({sprites = []}) {
+		this.frames = sprites;
 	}
 
 }
@@ -1742,10 +1709,13 @@ class Camera extends Component {
 				respective draw function if in the Camera's view.
 
 	*/
-	constructor(viewport, scale) {
+	constructor({	viewport = new Rect({'x':0,'y':0,'width':720,'height':480}), 
+					scale = new Vector2({'x':1,'y':1})
+				}) 
+	{
 		super();
 		this.viewport = viewport;
-		this._scale = scale || new Vector2(1,1);
+		this._scale = scale;
 	}
 
 	get viewport() {
@@ -1775,7 +1745,6 @@ class Camera extends Component {
 	draw(player, elements) {
 		Game.instance.player.context.save();
 		Game.instance.player.context.scale(this.scale.x, this.scale.y);
-
 		// elements.slice() copies the array
 		let sortedElements = elements.slice().sort(function (a, b) {
 			let isUI = (a.isUI - b.isUI) * 10000000; // TODO: Clean this dirty fix to UI not showing on top
@@ -1790,7 +1759,7 @@ class Camera extends Component {
 						// this, since it is being run on every object in the scene
 						if (PhysicsEngine.collisionRR(
 								el.transform,
-								new Rect(0, 0, this.viewport.width, this.viewport.height)
+								new Rect({'x':0, 'y':0, 'width':this.viewport.width, 'height':this.viewport.height})
 							)) {
 							component.draw(player.context, el.transform)
 						}
@@ -1823,7 +1792,7 @@ class Camera extends Component {
 
 
 class InputKey {
-	constructor(name) {
+	constructor({name = ""}) {
 		this.name = name;
 		this.down = false;
 		this.up = false;
@@ -1834,9 +1803,9 @@ class InputKey {
 }
 
 class Input {
-	static handleInput(key, inputType) {
+	static handleInput(key="", inputType="none") {
 		if (Input.keys[key] === undefined) {
-			Input.keys[key] = new InputKey(key)
+			Input.keys[key] = new InputKey({key});
 		}
 		if (inputType === Input.KEYDOWN) {
 			Input.keys[key].down = true;
@@ -1932,24 +1901,24 @@ class Input {
 				let actualScale = Vector2.mult(Game.instance.player.scale, Scene.current.mainCamera.scale);
 				// the world coordinate of the mouse will be the real position divided by the scale
 				Input.mouse.rel = Vector2.div(Input.mouse.abs, actualScale);
-				Scene.current.handleInput('move');
+				Scene.current.handleInput(Input._MOUSEMOVE);
 			}
 		});
 		target.addEventListener('mousedown', function (e) {
 			Input.mouse.down = true;
 			if (Scene.current) {
-				Scene.current.handleInput('down');	
+				Scene.current.handleInput(Input._MOUSEDOWN);	
 			}
 		});
 		target.addEventListener('mouseup', function (e) {
 			Input.mouse.down = false;
 			if (Scene.current) {
-				Scene.current.handleInput('up');	
+				Scene.current.handleInput(Input._MOUSEUP);	
 			}
 		});
 		target.addEventListener('dblclick', function (e) {
 			if (Scene.current) {
-				Scene.current.handleInput('dblDown');	
+				Scene.current.handleInput(Input._MOUSEDBLDOWN);	
 			}
 		});
 	}
@@ -1978,37 +1947,37 @@ Input.KEYDOWN = 'keydown';
 Input.KEYUP = 'keyup';
 Input.SPACE = ' ';
 Input.keys = {
-	'q': new InputKey('q'), 'w': new InputKey('w'), 'e': new InputKey('e'),
-	'r': new InputKey('r'), 't': new InputKey('t'), 'y': new InputKey('y'),
-	'u': new InputKey('u'), 'i': new InputKey('i'), 'o': new InputKey('o'),
-	'p': new InputKey('p'), 'a': new InputKey('a'), 's': new InputKey('s'),
-	'd': new InputKey('d'), 'f': new InputKey('f'), 'g': new InputKey('g'),
-	'h': new InputKey('h'), 'j': new InputKey('j'), 'k': new InputKey('k'),
-	'l': new InputKey('l'), ';': new InputKey(';'), "'": new InputKey("'"),
-	'z': new InputKey('z'), 'x': new InputKey('x'), 'c': new InputKey('c'),
-	'v': new InputKey('v'), 'b': new InputKey('b'), 'n': new InputKey('n'),
-	'm': new InputKey('m'), ',': new InputKey(','), '.': new InputKey('.'),
-	'/': new InputKey('/'), '1': new InputKey('1'), '2': new InputKey('2'),
-	'3': new InputKey('3'), '4': new InputKey('4'), '5': new InputKey('5'),
-	'6': new InputKey('6'), '7': new InputKey('7'), '8': new InputKey('8'),
-	'9': new InputKey('9'), '0': new InputKey('0'), '-': new InputKey('-'),
-	'=': new InputKey('='), '`': new InputKey('`'),
-	'Escape': new InputKey('Escape'),
-	'Shift': new InputKey('Shift'),
-	' ': new InputKey(' '),
-	'Enter': new InputKey('Enter'),
-	'Meta': new InputKey('Meta'),
-	'Alt': new InputKey('Alt'),
-	'Tab': new InputKey('Tab'),
-	'Backspace': new InputKey('Backspace'),
+	'q': new InputKey({'name':'q'}), 'w': new InputKey({'name':'w'}), 'e': new InputKey({'name':'e'}),
+	'r': new InputKey({'name':'r'}), 't': new InputKey({'name':'t'}), 'y': new InputKey({'name':'y'}),
+	'u': new InputKey({'name':'u'}), 'i': new InputKey({'name':'i'}), 'o': new InputKey({'name':'o'}),
+	'p': new InputKey({'name':'p'}), 'a': new InputKey({'name':'a'}), 's': new InputKey({'name':'s'}),
+	'd': new InputKey({'name':'d'}), 'f': new InputKey({'name':'f'}), 'g': new InputKey({'name':'g'}),
+	'h': new InputKey({'name':'h'}), 'j': new InputKey({'name':'j'}), 'k': new InputKey({'name':'k'}),
+	'l': new InputKey({'name':'l'}), ';': new InputKey({'name':';'}), "'": new InputKey({'name':"'"}),
+	'z': new InputKey({'name':'z'}), 'x': new InputKey({'name':'x'}), 'c': new InputKey({'name':'c'}),
+	'v': new InputKey({'name':'v'}), 'b': new InputKey({'name':'b'}), 'n': new InputKey({'name':'n'}),
+	'm': new InputKey({'name':'m'}), ',': new InputKey({'name':','}), '.': new InputKey({'name':'.'}),
+	'/': new InputKey({'name':'/'}), '1': new InputKey({'name':'1'}), '2': new InputKey({'name':'2'}),
+	'3': new InputKey({'name':'3'}), '4': new InputKey({'name':'4'}), '5': new InputKey({'name':'5'}),
+	'6': new InputKey({'name':'6'}), '7': new InputKey({'name':'7'}), '8': new InputKey({'name':'8'}),
+	'9': new InputKey({'name':'9'}), '0': new InputKey({'name':'0'}), '-': new InputKey({'name':'-'}),
+	'=': new InputKey({'name':'='}), '`': new InputKey({'name':'`'}),
+	'Escape': new InputKey({'name':'Escape'}),
+	'Shift': new InputKey({'name':'Shift'}),
+	' ': new InputKey({'name':' '}),
+	'Enter': new InputKey({'name':'Enter'}),
+	'Meta': new InputKey({'name':'Meta'}),
+	'Alt': new InputKey({'name':'Alt'}),
+	'Tab': new InputKey({'name':'Tab'}),
+	'Backspace': new InputKey({'name':'Backspace'}),
 };
 Input.downKeys = {}
 class Draggable extends Button {
 	constructor() {
 		super();
 		this._isDragged = false;
-		this._originalPosition = new Vector2(0, 0);
-		this._distanceFromClickPoint = new Vector2(0, 0);
+		this._originalPosition = Vector2.zero;
+		this._distanceFromClickPoint = Vector2.zero;
 	}
 
 	get isDragged() {
@@ -2025,7 +1994,7 @@ class Draggable extends Button {
 
 	addTo(gameObject) {
 		super.addTo(gameObject);
-		this._originalPosition = new Vector2(gameObject.transform.x, gameObject.transform.y)
+		this._originalPosition = new Vector2({'x':gameObject.transform.x, 'y':gameObject.transform.y})
 	}
 
 	onDrag(point) {
@@ -2040,7 +2009,11 @@ class Draggable extends Button {
 	}
 
 	_onDrag(point) {
-		this.gameObject.moveTo(new Vector3(point.x + this._distanceFromClickPoint.x, point.y + this._distanceFromClickPoint.y, this.gameObject.transform.z));
+		this.gameObject.moveTo(new Vector3({
+			'x':point.x + this._distanceFromClickPoint.x, 
+			'y':point.y + this._distanceFromClickPoint.y, 
+			'z':this.gameObject.transform.z
+		}));
 		this.onDrag(point)
 	}
 
@@ -2050,14 +2023,14 @@ class Draggable extends Button {
 	}
 }
 class RigidBody extends Component {
-	constructor(isStatic) {
+	constructor({isStatic=false}) {
 		super();
-		this._velocity = new Vector2(0, 0);
-		this._acceleration = new Vector2(0, 0);
+		this._velocity = Vector2.zero;
+		this._acceleration = Vector2.zero;
 		this._mass = 1;
 		this._friction = 1;
 		this._maxSpeed = Infinity;
-		this._isStatic = isStatic || false;
+		this._isStatic = isStatic;
 	}
 
 	addTo(gameObject) {
@@ -2160,7 +2133,7 @@ class RigidBody extends Component {
 }
 
 class Collision {
-	constructor(colliderA, colliderB, normal, penetration) {
+	constructor({colliderA=null, colliderB=null, normal=null, penetration=null}) {
 		this.colliderA = colliderA;
 		this.colliderB = colliderB;
 		this.normal = normal;
@@ -2169,11 +2142,11 @@ class Collision {
 }
 
 class Collider extends Component {
-	constructor(bound, layer) {
+	constructor({bound, layer = Collider.LAYER_ALL}) {
 		super();
 		this._bound = bound;
 		this.worldBound = bound;
-		this._layer = layer || Collider.LAYER_ALL;
+		this._layer = layer;
 		this._collisions = [];
 		this._colliders = [];
 	}
@@ -2265,7 +2238,7 @@ class Collider extends Component {
 			}
 			return result;
 		}
-		return new Collision(this, otherCollider, null, null);
+		return new Collision({'colliderA':this, 'colliderB':otherCollider});
 	}
 
 	onEnter(collision) {
@@ -2307,8 +2280,8 @@ class Collider extends Component {
 Collider.LAYER_ALL = 'all'
 
 class RectCollider extends Collider {
-	constructor(bound, layer) {
-		super(bound, layer);
+	constructor({bound, layer}) {
+		super({bound, layer});
 	}
 
 	addTo(gameObject) {
@@ -2321,14 +2294,18 @@ class RectCollider extends Collider {
 }
 
 class CircleCollider extends Collider {
-	constructor(bound, layer) {
-		super(bound, layer);
+	constructor({bound, layer}) {
+		super({bound, layer});
 	}
 
 	addTo(gameObject) {
 		super.addTo(gameObject);
 		if (this._bound === undefined || this._bound === null) {
-			let c = new Circle(gameObject.transform.x, gameObject.transform.y, gameObject.transform.width);
+			let c = new Circle({
+				'x':gameObject.transform.x, 
+				'y':gameObject.transform.y, 
+				'r':gameObject.transform.width
+			});
 			c.width = c.r;
 			c.height = c.r;
 			this._bound = c;
@@ -2344,7 +2321,7 @@ class CircleCollider extends Collider {
  * @param      {Sprite} sprite { the sprite to be drawn }
  */
 class SpriteRenderer extends Component {
-	constructor(sprite) {
+	constructor({sprite}) {
 		super();
 		this.sprite = sprite;
 		this.borderEnabled = false;
@@ -2380,7 +2357,12 @@ class SpriteRenderer extends Component {
 			if (t.scale.x !== 1 || t.scale.y !== 1) {
 				context.scale(t.scale.x, t.scale.y);
 			}
-			let bounds = new Rect(position.x, position.y, t.width, t.height);
+			let bounds = new Rect({
+				'x': position.x, 
+				'y': position.y, 
+				'width': t.width, 
+				'height': t.height
+			});
 			if (this.hue) {
 				context.filter = "hue-rotate("+this.hue+"deg)";
 			}
@@ -2413,9 +2395,9 @@ class Resource {
 }
 
 class ImageResource extends Resource {
-	constructor(path, size) {
+	constructor({path}) {
 		super();
-		this.image = new Image();
+		this.image = new Image(); // new DOM Image
 		this.image.onload = (ev)=>{
 			this.loaded = true;
 			this.onLoad(ev);
@@ -2503,25 +2485,34 @@ class Loader {
 }
 
 class Sprite {
-	constructor(imageOrColor, cropRect) {
-		if (imageOrColor instanceof ImageResource) {
-			this.image = imageOrColor.image;
-			if (cropRect === null || cropRect === undefined) {
-				this.cropRect = new Rect(0, 0, this.image.width, this.image.height);
+	constructor({color, image, cropRect}) {
+		if (image) {
+			this.image = image.image;
+			if (cropRect === undefined) {
+				this.cropRect = new Rect({
+					'x':0, 
+					'y':0, 
+					'width':this.image.width, 
+					'height':this.image.height
+				});
 			} else {
 				this.cropRect = cropRect;
 			}
-
 			this.draw = function (context, transform) {
 				if (this.cropRect.width <= 0 || this.cropRect.height <= 0) {
-					this.cropRect = new Rect(0, 0, this.image.width, this.image.height);
+					this.cropRect = new Rect({
+						'x':0, 
+						'y':0, 
+						'width':this.image.width, 
+						'height':this.image.height
+					});
 				}
 				context.drawImage(this.image,
 					this.cropRect.x, this.cropRect.y, this.cropRect.width, this.cropRect.height,
 					transform.x, transform.y, transform.width, transform.height);
 			}
-		} else if (imageOrColor instanceof Color) {
-			this.color = imageOrColor;
+		} else if (color) {
+			this.color = color;
 			this.draw = function (context, transform) {
 				context.fillStyle = this.color.toString();
 				context.fillRect(transform.x, transform.y, transform.width, transform.height);
@@ -2560,8 +2551,8 @@ class Sprite {
 Sprite._sprites = [];
 
 class CircleSprite extends Sprite {
-	constructor(color) {
-		super(color);
+	constructor({color}) {
+		super({color});
 		this.draw = function (context, transform) {
 			context.fillStyle = this.color.toString();
 			context.beginPath();
@@ -2578,13 +2569,16 @@ class CircleSprite extends Sprite {
  * @class      TextRenderer (name)
  */
 class TextRenderer extends Component {
-	constructor(text, font) {
+	constructor({text="", 
+				 font=Font.default,
+				}) 
+	{
 		super();
 		this._lines = [];
 		this._splitLines = [];
 		this.noStyleText = "";
-		this.text = text || "";
-		this.font = font || new Font("Courier", 16, Color.BLACK, Font.LEFT, Font.CENTERED);
+		this.text = text;
+		this.font = font;
 	}
 
 	get text() {
@@ -2638,9 +2632,9 @@ class TextRenderer extends Component {
 
 			let vAlign = 0;
 
-			if (this.font.vertAlignment === Font.CENTERED) 		// set vAlign to the center of the gameObject
+			if (this.font.vAlignment === Font.CENTERED) 		// set vAlign to the center of the gameObject
 				vAlign = (this.gameObject.transform.height / 2) + (this.font.size / 2);
-			else if (this.font.vertAlignment === Font.BOTTOM) 	// set vAlign to the bottom of gameObject
+			else if (this.font.vAlignment === Font.BOTTOM) 	// set vAlign to the bottom of gameObject
 				vAlign = this.gameObject.transform.height;
 
 			for (const line of this._splitLines) {
@@ -2649,7 +2643,7 @@ class TextRenderer extends Component {
 					for (let i=0; i < args.length; i++) {
 						let arg = null;
 						try {
-							arg = safeEval(args[i]); // TODO: Sanitize input, here
+							arg = Util.safeEval(args[i]); // TODO: Sanitize input, here
 						} catch (e) {
 							// do nothing
 						}
@@ -2673,12 +2667,12 @@ class TextRenderer extends Component {
 					}
 					let hAlign = 0;
 
-					if (this.font.alignment === Font.CENTERED) {
+					if (this.font.hAlignment === Font.CENTERED) {
 						// TODO: Can we move the measureText outside of the draw method?
 						hAlign -= context.measureText(splitText[lineIndex]).width / 2;
 						hAlign += this.gameObject.transform.width / 2;
 
-					} else if (this.font.alignment === Font.RIGHT) {
+					} else if (this.font.hAlignment === Font.RIGHT) {
 
 						hAlign -= context.measureText(splitText[lineIndex]).width;
 						hAlign += this.gameObject.transform.width;
@@ -2695,56 +2689,22 @@ class TextRenderer extends Component {
 }
 
 class Font {
-	constructor(name, size, color, alignment, vertAlignment) {
-		this._name = name || 'Arial';
-		this._size = size || 12;
-		this._color = color || Color.BLACK;
-		this._alignment = alignment || Font.LEFT;
-		this._vertAlignment = vertAlignment || Font.TOP;
-	}
-
-	get name() {
-		return this._name
-	}
-
-	get size() {
-		return this._size
-	}
-
-	get color() {
-		return this._color
-	}
-
-	get alignment() {
-		return this._alignment
-	}
-
-	get vertAlignment() {
-		return this._vertAlignment
-	}
-
-	set name(name) {
-		this._name = name
-	}
-
-	set size(size) {
-		this._size = size
-	}
-
-	set color(color) {
-		this._color = color
-	}
-
-	set alignment(alignment) {
-		this._alignment = alignment
-	}
-
-	set vertAlignment(vertAlignment) {
-		this._vertAlignment = vertAlignment
+	constructor({	name = 'Courier', 
+					size = 12, 
+					color = Color.BLACK, 
+					hAlignment = Font.LEFT, 
+					vAlignment = Font.TOP
+				}) 
+	{
+		this.name = name;
+		this.size = size;
+		this.color = color;
+		this.hAlignment = hAlignment;
+		this.vAlignment = vAlignment;
 	}
 
 	toString() {
-		return this.size + "px " + this.name
+		return `${this.size}px ${this.name}`;
 	}
 }
 Font.BOLD = 'bold';
@@ -2756,12 +2716,19 @@ Font.RIGHT = 'right';
 Font.LEFT = 'left';
 Font.TOP = 'top';
 Font.BOTTOM = 'bottom';
+Font.default = new Font({
+	'name':'courier', 
+	'size':12, 
+	'color':Color.BLACK, 
+	'hAlignment':Font.LEFT, 
+	'vAlignment':Font.TOP
+});
 
 class PhysicsCollider extends Collider {
-	constructor(bound, layer, bounciness, slickness) {
+	constructor({bound, layer, bounciness = 0, slickness = 1}) {
 		super(bound, layer);
-		this.bounciness = bounciness || 0;
-		this.slickness = slickness || 1;
+		this.bounciness = bounciness;
+		this.slickness = slickness;
 	}
 
 	_onEnter(collision) {
@@ -2828,7 +2795,7 @@ class PhysicsEngine {
 						// no collision
 						if (coll1.colliders.indexOf(coll2) >= 0) {
 							// if a collision was there last frame
-							coll1._onExit(new Collision(coll1, coll2));
+							coll1._onExit(new Collision({'colliderA':coll1, 'colliderB':coll2}));
 						}
 					}
 				}
@@ -2975,20 +2942,20 @@ class PhysicsEngine {
 			let penetration = null;
 			if (overlapX < overlapY) {
 				if (rectB.x - rectA.x < 0) {
-					normal = new Vector2( -1, 0 );
+					normal = new Vector2({'x':-1, 'y':0});
 				} else {
-					normal = new Vector2( 1, 0 );
+					normal = new Vector2({'x':1, 'y':0});
 				}
 				penetration = overlapX;
 			} else {
 				if (rectB.y - rectA.y < 0) {
-					normal = new Vector2( 0, -1 );
+					normal = new Vector2({'x':0, 'y':-1});
 				} else {
-					normal = new Vector2( 0, 1 );
+					normal = new Vector2({'x':0, 'y':1});
 				}
 				penetration = overlapY;
 			}
-			return new Collision(null, null, normal, penetration);
+			return new Collision({normal, penetration});
 		}
 		return false
 	}
@@ -3007,7 +2974,7 @@ class PhysicsEngine {
 		let LAB = Math.sqrt( ((B.x-A.x)*(B.x-A.x))+((B.y-A.y)*(B.y-A.y)) );
 
 		// compute the direction vector D from A to B
-		let D = new Vector2((B.x-A.x)/LAB, (B.y-A.y)/LAB)
+		let D = new Vector2({'x':(B.x-A.x)/LAB, 'y':(B.y-A.y)/LAB})
 
 		// Now the line equation is x = Dx*t + Ax, y = Dy*t + Ay with 0 <= t <= 1.
 
@@ -3017,7 +2984,7 @@ class PhysicsEngine {
 		// This is the projection of C on the line from A to B.
 
 		// compute the coordinates of the point E on line and closest to C
-		let E = new Vector2(t*D.x+A.x, t*D.y+A.y)
+		let E = new Vector2({'x':t*D.x+A.x, 'y':t*D.y+A.y})
 
 		// compute the euclidean distance from E to C
 		let LEC = Math.sqrt( (E.x-C.x)*(E.x-C.x)+(E.y-C.y)*(E.y-C.y) )
@@ -3029,18 +2996,18 @@ class PhysicsEngine {
 		    let dt = Math.sqrt( (R*R) - (LEC*LEC))
 
 		    // compute first intersection point
-		    let F = new Vector2((t-dt)*D.x + A.x, (t-dt)*D.y + A.y)
+		    let F = new Vector2({'x':(t-dt)*D.x + A.x, 'y':(t-dt)*D.y + A.y})
 
 		    if (F.x >= A.x && F.x <= B.x && F.y >= A.y && F.y <= B.y) {
 		    	//return F;
-		    	return new Collision(null, null, line.normal, LEC);
+		    	return new Collision({'normal':line.normal, 'penetration':LEC});
 		    }
 
 		    // compute second intersection point
-		    let G = new Vector2((t+dt)*D.x + A.x, (t+dt)*D.y + A.y)
+		    let G = new Vector2({'x':(t+dt)*D.x + A.x, 'y':(t+dt)*D.y + A.y})
 		    if (G.x >= A.x && G.x <= B.x && G.y >= A.y && G.y <= B.y) {
 		    	//return A;
-		    	return new Collision(null, null, line.normal, LEC);
+		    	return new Collision({'normal':line.normal, 'penetration':LEC});
 		    }
 		}
 
@@ -3048,7 +3015,7 @@ class PhysicsEngine {
 		else if( LEC === R ) {
 			if (E.x >= A.x && E.x <= B.x && E.y >= A.y && E.y <= B.y) {
 		    	//return E;
-		    	return new Collision(null, null, line.normal, LEC);
+		    	return new Collision({'normal':line.normal, 'penetration':LEC});
 		    }
 		}
 		    // tangent point to circle is E
@@ -3194,7 +3161,7 @@ PhysicsEngine.colliders = [];
 PhysicsEngine.constantForce = Vector2.zero;
 
 class RaycastPoint {
-	constructor(start, collider, points) {
+	constructor({start, collider, points}) {
 		this.start = start;
 		this.collider = collider;
 		this.points = points
@@ -3216,7 +3183,7 @@ class RaycastPoint {
 }
 
 class Raycast {
-	constructor(rayStart, rayDirection, layer = 65535, rayLength = 999999) {
+	constructor({rayStart, rayDirection, layer = 65535, rayLength = 999999}) {
 		this.rayStart = rayStart;
 		this.rayDirection = rayDirection;
 		this._mask = layer;
@@ -3244,7 +3211,7 @@ class Raycast {
 	}
 
 	get rayToLine() {
-		return new Line(this.rayStart, this.rayEnd)
+		return new Line({'pointA':this.rayStart, 'pointB':this.rayEnd})
 	}
 
 	set rayStart(rayStart) {
@@ -3281,7 +3248,7 @@ class Raycast {
 			}
 			
 			if (points.length > 0)
-				rayCastPoints.push(new RaycastPoint(this.rayStart, coll, points))
+				rayCastPoints.push(new RaycastPoint({'start':this.rayStart, 'collider':coll, 'points':points}))
 		}
 		if (rayCastPoints.length > 0) {
 			rayCastPoints.sort((a, b) => {
@@ -3295,7 +3262,7 @@ class Raycast {
 
 }
 class Parallax extends Component {
-	constructor(cameraToBaseMovementFrom, movementMultiplier) {
+	constructor({cameraToBaseMovementFrom, movementMultiplier}) {
 		super();
 		this.camera = cameraToBaseMovementFrom;
 		this.movementMultiplier = movementMultiplier;
@@ -3371,7 +3338,7 @@ class Util {
 
 
 class Game {
-	constructor(canvasDOM, inputTarget, size) {
+	constructor({canvas, inputTarget, size}) {
 		if (Game.instance !== null) {
 			console.error("Only one instance of Game is allowed");
 			return;
@@ -3391,8 +3358,8 @@ class Game {
 		this.paused = false;
 		this.running = false;
 
-		this.player = new Player(canvasDOM, size);
-		this.inputTarget = inputTarget || canvasDOM;
+		this.player = new Player({'canvas':canvas, 'size':size});
+		this.inputTarget = inputTarget || canvas;
 		Input.createEventListeners(this.inputTarget);
 	}
 	get dt() {
@@ -3453,12 +3420,12 @@ class Game {
 
 			Input.update(this._dt / 1000);
 			if (!this.paused) {
-				Scene.clear(this.player);
 				Scene.update(this._dt / 1000);
 				if (this._physicsUpdateDelay === 0 || this.ticks % this._physicsUpdateDelay === 0) {
 					// update PhysicsEngine every X frames
 					PhysicsEngine.update(this._dt / 1000);
 				}
+				Scene.clear(this.player);
 				Scene.draw(this.player);
 			}
 			
@@ -3478,7 +3445,7 @@ class Game {
 Game.instance = null;
 
 class Player {
-	constructor(canvas, size) {
+	constructor({canvas, size}) {
 		this.canvas = canvas;
 		this.context = canvas.getContext('2d');
 		this.canvas.style.position = "absolute";
@@ -3488,7 +3455,7 @@ class Player {
 
 		this.originalSize = size;
 		this.aspectRatio = 2 / 3;
-		this._scale = new Vector2(1, 1);
+		this._scale = new Vector2({'x':1, 'y':1});
 		
 		this.resizeMode = Player.RESIZE_SCALE;
 		this.autoResize = true;
@@ -3542,7 +3509,10 @@ class Player {
 	set scale(scale) {
 		if (scale.x != 0 && scale.y != 0) {
 			this.context.scale(scale.x / this._scale.x, scale.y / this._scale.y);
-			this._scale = new Vector2(scale.x / this._scale.x, scale.y / this._scale.y);
+			this._scale = new Vector2({
+				'x':scale.x / this._scale.x, 
+				'y':scale.y / this._scale.y
+			});
 		}
 	}
 
@@ -3596,7 +3566,7 @@ class Player {
 	resize() {
 		this.canvas.style.left = "0px";
 		this.canvas.style.top = "0px";
-		this.size = new Vector2(window.innerWidth, window.innerHeight);
+		this.size = new Vector2({'x':window.innerWidth, 'y':window.innerHeight});
 		this._scale = Vector2.div(this.size, this.originalSize);
 	}
 
@@ -3606,13 +3576,13 @@ class Player {
 	rescale() {
 		if (window.innerWidth * this.aspectRatio <= window.innerHeight) {
 			// if scaling up does not cause the height to be bigger than the page
-			this.size = new Vector2(window.innerWidth, window.innerWidth * this.aspectRatio);
+			this.size = new Vector2({'x':window.innerWidth, 'y':window.innerWidth * this.aspectRatio});
 			// width is stretched to window width
 			// height is scaled from width according to aspect ratio
 			this.canvas.style.left = "0px";
 		} else {
 			// if scaling up causes height to be bigger than the page shows
-			this.size = new Vector2(window.innerHeight / this.aspectRatio, window.innerHeight);
+			this.size = new Vector2({'x':window.innerHeight / this.aspectRatio, 'y':window.innerHeight});
 			// scale based on height instead of width
 			this.canvas.style.left = (window.innerWidth - this.size.x) / 2+"px";
 			// shift the canvas to the middle of the screen
@@ -3627,16 +3597,43 @@ Player.RESIZE_NONE = 'none';
 
 
 class TextBox extends GameObject {
-	constructor(transform, isUI=false) {
-		super(transform, isUI);
+	constructor({transform, isUI=false}) {
+		super({transform, isUI});
 		this.focused = false;
-		this.addComponent(new SpriteRenderer(new Sprite(Color.GRAY)));
+		this.addComponent(new SpriteRenderer({
+			'sprite':new Sprite({
+				'color':Color.GRAY
+			})
+		}));
 
-		this.addComponent(new TextRenderer("", new Font("Courier", transform.height, Color.GREEN, Font.LEFT, Font.CENTERED)));
+		this.addComponent(new TextRenderer({
+			'font':new Font({
+				'name':"Courier", 
+				'size':transform.height, 
+				'color':Color.GREEN, 
+				'hAlignment':Font.LEFT, 
+				'vAlignment':Font.CENTERED
+			})
+		}));
 		this.addComponent(new Button());
 
-		this.cursor = new GameObject(new Transform(transform.x, transform.y, transform.z+1, 1, transform.height));
-		this.cursor.addComponent(new SpriteRenderer(new Sprite(new Color(255,0,0,0.5))));
+		this.cursor = new GameObject({
+			'transform':new Transform({
+				'x':transform.x, 
+				'y':transform.y, 
+				'z':transform.z+1, 
+				'width':1, 
+				'height':transform.height}),
+			'isUI': isUI
+		});
+		this.cursor.addComponent(new SpriteRenderer({
+			'sprite':new Sprite({
+				'color':new Color({
+					'r':255,
+					'a':0.5
+				})
+			})
+		}));
 
 		this.maxLength = Math.floor(this.transform.width / (transform.height * (3/5)));
 
@@ -3650,7 +3647,7 @@ class TextBox extends GameObject {
 
 		this.timeHoldPerChar = 0.5;
 		this.timeHeld = this.timeHoldPerChar;
-		this.timeHoldMultRate = 0.8;
+		this.timeHoldMultRate = 0.6;
 	}
 
 	update(dt) {
