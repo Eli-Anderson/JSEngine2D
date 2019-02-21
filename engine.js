@@ -2571,6 +2571,7 @@ class CircleSprite extends Sprite {
 class TextRenderer extends Component {
 	constructor({text="", 
 				 font=Font.default,
+				 maxWidth = null,
 				}) 
 	{
 		super();
@@ -2579,6 +2580,7 @@ class TextRenderer extends Component {
 		this.noStyleText = "";
 		this.text = text;
 		this.font = font;
+		this.maxWidth = maxWidth;
 	}
 
 	get text() {
@@ -2638,9 +2640,13 @@ class TextRenderer extends Component {
 				vAlign = this.gameObject.transform.height;
 
 			for (const line of this._splitLines) {
+
+				// BEGIN HANDLING OF IN-LINE STYLING
 				if (line[0].length > 2) {
+					// for each split line
 					let args = line[0].split(';');
 					for (let i=0; i < args.length; i++) {
+						// for each in-line styling
 						let arg = null;
 						try {
 							arg = Util.safeEval(args[i]); // TODO: Sanitize input, here
@@ -2656,12 +2662,14 @@ class TextRenderer extends Component {
 							context.fillStyle = this.font.color;
 						}
 					}
+				// END HANDLING OF IN-LINE STYLING
 				} else {
 					context.fillStyle = this.font.color;
 				}
 
-				for (const index2 in line[1]) {
-					if (index2 > 0) {
+				for (let i = 0; i < line[1].length; i++) {
+					if (i > 0) {
+						// if this is the first chunk of the line, set widthInLine to 0
 						widthInLine = 0;
 						lineIndex++;
 					}
@@ -2678,9 +2686,13 @@ class TextRenderer extends Component {
 						hAlign += this.gameObject.transform.width;
 					}
 
-					context.fillText(line[1][index2], transform.x + widthInLine + hAlign, transform.y + vAlign + (lineIndex * this.font.size));
-					if (index2 === '0') {
-						widthInLine += context.measureText(line[1][index2]).width;
+					context.fillText(
+						line[1][i], // text
+						transform.x + widthInLine + hAlign, // x position
+						transform.y + vAlign + (lineIndex * this.font.size), // y position
+						this.maxWidth || undefined); // max width
+					if (i === 0) {
+						widthInLine += context.measureText(line[1][i]).width;
 					}
 				}
 			}
@@ -2693,7 +2705,7 @@ class Font {
 					size = 12, 
 					color = Color.BLACK, 
 					hAlignment = Font.LEFT, 
-					vAlignment = Font.TOP
+					vAlignment = Font.TOP,
 				}) 
 	{
 		this.name = name;
@@ -3597,7 +3609,7 @@ Player.RESIZE_NONE = 'none';
 
 
 class TextBox extends GameObject {
-	constructor({transform, isUI=false}) {
+	constructor({transform, maxLength=null, isUI=false, maxWidth=null}) {
 		super({transform, isUI});
 		this.focused = false;
 		this.addComponent(new SpriteRenderer({
@@ -3612,8 +3624,8 @@ class TextBox extends GameObject {
 				'size':transform.height, 
 				'color':Color.GREEN, 
 				'hAlignment':Font.LEFT, 
-				'vAlignment':Font.CENTERED
-			})
+				'vAlignment':Font.CENTERED,}),
+			'maxWidth':maxWidth
 		}));
 		this.addComponent(new Button());
 
@@ -3634,8 +3646,10 @@ class TextBox extends GameObject {
 				})
 			})
 		}));
-
-		this.maxLength = Math.floor(this.transform.width / (transform.height * (3/5)));
+		this.maxLength = maxLength;
+		if (this.maxLength === null) {
+			this.maxLength = Math.floor(this.transform.width / (transform.height * (3/5)));
+		}
 
 
 		this.cursorIndex = 0;
