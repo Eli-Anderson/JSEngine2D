@@ -2600,10 +2600,18 @@ class TextRenderer extends Component {
 		let openIndex = this._text.indexOf("{");
 		let closeIndex = this._text.indexOf("}");
 		if (openIndex >= 0 && closeIndex > openIndex) {
-			this._splitLines.push(["", this._text.substring(0, openIndex).split("\n")]);
+			let textBit = {
+				'style': "",
+				'text': this._text.substring(0, openIndex).split("\n")
+			}
+			this._splitLines.push(textBit);
 			this.noStyleText += this._text.substring(0, openIndex);
 		} else {
-			this._splitLines.push(["", this._text.split("\n")]);
+			let textBit = {
+				'style': "",
+				'text': this._text.split("\n")
+			}
+			this._splitLines.push(textBit);
 			this.noStyleText += this._text;
 		}
 		
@@ -2611,14 +2619,15 @@ class TextRenderer extends Component {
 			let closeIndex = this._text.indexOf("}", openIndex+1);
 
 			let nextOpenIndex = this._text.indexOf("{", openIndex+1);
-			this._splitLines.push([
-				this._text.substring(openIndex+1, closeIndex),
-				this._text.substring(closeIndex+1, nextOpenIndex >= 0 ? nextOpenIndex : this._text.length).split("\n")
-			]);
-			this.noStyleText += this._text.substring(closeIndex+1, nextOpenIndex >= 0 ? nextOpenIndex : this._text.length);
+			let textBitEnd = nextOpenIndex >= 0 ? nextOpenIndex : this._text.length;
+			let textBit = {
+				'style': this._text.substring(openIndex+1, closeIndex),
+				'text': this._text.substring(closeIndex+1, textBitEnd).split("\n")
+			}
+			this._splitLines.push(textBit);
+			this.noStyleText += this._text.substring(closeIndex+1, textBitEnd);
 			openIndex = nextOpenIndex;
 		}
-		
 	}
 
 	set font(font) {
@@ -2639,12 +2648,12 @@ class TextRenderer extends Component {
 			else if (this.font.vAlignment === Font.BOTTOM) 	// set vAlign to the bottom of gameObject
 				vAlign = this.gameObject.transform.height;
 
-			for (const line of this._splitLines) {
+			for (const textBit of this._splitLines) {
 
 				// BEGIN HANDLING OF IN-LINE STYLING
-				if (line[0].length > 2) {
+				if (textBit.style) {
 					// for each split line
-					let args = line[0].split(';');
+					let args = textBit.style.split(';');
 					for (let i=0; i < args.length; i++) {
 						// for each in-line styling
 						let arg = null;
@@ -2667,7 +2676,7 @@ class TextRenderer extends Component {
 					context.fillStyle = this.font.color;
 				}
 
-				for (let i = 0; i < line[1].length; i++) {
+				for (let i = 0; i < textBit.text.length; i++) {
 					if (i > 0) {
 						// if this is the first chunk of the line, set widthInLine to 0
 						widthInLine = 0;
@@ -2687,12 +2696,12 @@ class TextRenderer extends Component {
 					}
 
 					context.fillText(
-						line[1][i], // text
+						textBit.text[i], // text
 						transform.x + widthInLine + hAlign, // x position
 						transform.y + vAlign + (lineIndex * this.font.size), // y position
 						this.maxWidth || undefined); // max width
 					if (i === 0) {
-						widthInLine += context.measureText(line[1][i]).width;
+						widthInLine += context.measureText(textBit.text[i]).width;
 					}
 				}
 			}
