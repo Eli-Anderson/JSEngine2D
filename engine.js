@@ -1323,6 +1323,7 @@ class Scene {
 		if (Scene.current === null) {
 			Scene.changeScene(key);
 		}
+		this.bgColor = Color.BLACK;
 	}
 
 	get children() {
@@ -1443,6 +1444,9 @@ class Scene {
 		// handle mouse movement
 		if (type === Input._MOUSEMOVE) {
 			for (const component of this._inputComponents) {
+				// TODO: Need to handle if (gameObject.enabled === false) here, but
+				// we don't want to just do a simple if statement. If the component is already
+				// being dragged, we need to set it to being NOT dragged
 				if (component.isDragged) {
 					component._onDrag(Input.mouse.rel);
 				}
@@ -1460,7 +1464,8 @@ class Scene {
 		} else if (type === Input._MOUSEDOWN) {
 			let topMost = null;
 			for (const component of this._inputComponents) {
-				if (PhysicsEngine.collisionPR(Input.mouse.rel, component.gameObject.transform)) {
+				if (component.gameObject.enabled &&
+					PhysicsEngine.collisionPR(Input.mouse.rel, component.gameObject.transform)) {
 					if (topMost === null || component.gameObject.transform.z > topMost.gameObject.transform.z)
 						topMost = component;
 				}
@@ -1480,13 +1485,25 @@ class Scene {
 		} else if (type === Input._MOUSEDBLDOWN) {
 			let topMost = null;
 			for (const component of this._inputComponents) {
-				if (PhysicsEngine.collisionPR(Input.mouse.rel, component.gameObject.transform)) {
+				if (component.gameObject.enabled &&
+					PhysicsEngine.collisionPR(Input.mouse.rel, component.gameObject.transform)) {
 					if (topMost === null || component.gameObject.transform.z > topMost.gameObject.transform.z)
 						topMost = component;
 				}
 			}
 			if (topMost !== null)
 				topMost._onDblClick(Input.mouse.rel);
+		} else if (type === Input._RIGHTCLICK) {
+			let topMost = null;
+			for (const component of this._inputComponents) {
+				if (component.gameObject.enabled &&
+					PhysicsEngine.collisionPR(Input.mouse.rel, component.gameObject.transform)) {
+					if (topMost === null || component.gameObject.transform.z > topMost.gameObject.transform.z)
+						topMost = component;
+				}
+			}
+			if (topMost !== null)
+				topMost._onRightClick(Input.mouse.rel);
 		}
 	}
 
@@ -1511,10 +1528,10 @@ class Scene {
 		}
 	}
 
-	static clear(player, color = Color.BLACK) {
+	static clear(player) {
 		if (Scene.current === null) return;
 		if (Scene.current.mainCamera) {
-			player.context.fillStyle = color;
+			player.context.fillStyle = Scene.current.bgColor;
 			player.context.fillRect(0, 0, 	Scene.current.mainCamera.viewport.width, 
 											Scene.current.mainCamera.viewport.height);
 		} else {
@@ -1600,6 +1617,8 @@ class Button extends InputComponent {
 
 	onClick(point){};
 
+	onRightClick(point){};
+
 	onDblClick(point){};
 
 	onRelease(point){};
@@ -1611,6 +1630,11 @@ class Button extends InputComponent {
 	_onClick(point) {
 		this.isPressed = true;
 		this.onClick(point)
+	}
+
+	_onRightClick(point) {
+		//TODO: Maybe need to handle on right click hold, here?
+		this.onRightClick(point);
 	}
 
 	_onDblClick(point) {
@@ -1888,6 +1912,10 @@ class Input {
 		// this, I have added "tabindex='1'" on the element. Maybe make this done automatically??
 		target.addEventListener('keydown', (e) => {
 			Input.handleInput(e.key, Input.KEYDOWN);
+			if (e.key == 'Backspace') {
+				e.preventDefault();
+				return false;
+			}
 		});
 		target.addEventListener('keyup', (e) => Input.handleInput(e.key, Input.KEYUP));
 
@@ -1905,9 +1933,13 @@ class Input {
 			}
 		});
 		target.addEventListener('mousedown', function (e) {
-			Input.mouse.down = true;
-			if (Scene.current) {
-				Scene.current.handleInput(Input._MOUSEDOWN);	
+			if (e.which && e.which === 1 ||
+				e.button && e.button === 1) {
+
+				Input.mouse.down = true;
+				if (Scene.current) {
+					Scene.current.handleInput(Input._MOUSEDOWN);	
+				}
 			}
 		});
 		target.addEventListener('mouseup', function (e) {
@@ -1921,6 +1953,13 @@ class Input {
 				Scene.current.handleInput(Input._MOUSEDBLDOWN);	
 			}
 		});
+		target.addEventListener('contextmenu', function(e) {
+		    e.preventDefault();
+		    if (Scene.current) {
+		    	Scene.current.handleInput(Input._RIGHTCLICK)
+		    }
+		    return false;
+		}, false);
 	}
 }
 
@@ -1942,6 +1981,7 @@ Input._MOUSEMOVE = 'move';
 Input._MOUSEUP = 'up';
 Input._MOUSEDOWN = 'down';
 Input._MOUSEDBLDOWN = 'dblDown';
+Input._RIGHTCLICK = 'rightClick';
 
 Input.KEYDOWN = 'keydown';
 Input.KEYUP = 'keyup';
@@ -3302,22 +3342,40 @@ class Util {
 	static deg2Rad(degrees) {
 		return degrees * (Math.PI / 180);
 	}
+	/**
+	 * Returns an array of n size, with contents picked randomly from the given array.
+	 * If array's elements are objects, then the outputted array will have references
+	 * to those objects (not copies). n can be any number greater than 0, and it is
+	 * not limited to the size of the array. In the case where n > array.length, the
+	 * outputted array will have multiple references to the same elements, but will 
+	 * still choose randomly.
+	 *
+	 * @param      {Array}  array   The array to choose from
+	 * @param      {number}  n       The number of elements
+	 * @return     {Array}  The sample
+	 */
 	static arrSample(array, n) {
-		function randomGenerator(x) {
-		    var range = new Array(x),
-		        pointer = x;
-		    return function getRandom() {
-		        pointer = (pointer-1+x) % x;
-		        var random = Math.floor(Math.random() * pointer);
-		        var num = (random in range) ? range[random] : random;
-		        range[random] = (pointer in range) ? range[pointer] : pointer;
-		        return range[pointer] = num;
-		    };
-		};
-		let generator = randomGenerator(array.length);
 		let result = [];
-		for (let i=0; i<n; i++) {
-			result.push(array[generator()]);
+		if (array.length > 2) {
+			function randomGenerator(x) {
+			    var range = new Array(x),
+			        pointer = x;
+			    return function getRandom() {
+			        pointer = (pointer-1+x) % x;
+			        var random = Math.floor(Math.random() * pointer);
+			        var num = (random in range) ? range[random] : random;
+			        range[random] = (pointer in range) ? range[pointer] : pointer;
+			        return range[pointer] = num;
+			    };
+			};
+			let generator = randomGenerator(array.length);
+			for (let i=0; i<n; i++) {
+				result.push(array[generator()]);
+			}
+		} else {
+			for (let i=0; i<n; i++) {
+				result.push(array[Util.randRange(0, array.length)]);
+			}
 		}
 		return result;
 	}
@@ -3597,12 +3655,13 @@ Player.RESIZE_NONE = 'none';
 
 
 class TextBox extends GameObject {
-	constructor({transform, isUI=false}) {
+	//TODO: Need to capture input and allow for multiple TextBoxes on the screen at once
+	constructor({transform, isUI=false, bgColor=Color.GRAY, color=Color.BLACK}) {
 		super({transform, isUI});
 		this.focused = false;
 		this.addComponent(new SpriteRenderer({
 			'sprite':new Sprite({
-				'color':Color.GRAY
+				'color':bgColor
 			})
 		}));
 
@@ -3610,7 +3669,7 @@ class TextBox extends GameObject {
 			'font':new Font({
 				'name':"Courier", 
 				'size':transform.height, 
-				'color':Color.GREEN, 
+				'color':color, 
 				'hAlignment':Font.LEFT, 
 				'vAlignment':Font.CENTERED
 			})
@@ -3741,46 +3800,45 @@ class TileMap extends GameObject {
 	}
 }
 
-if (typeof module !== 'undefined') {
-	module.exports = {
-		'Color': Color,
-		'Vector2': Vector2,
-		'Vector3': Vector3,
-		'Line': Line,
-		'Rect': Rect,
-		'Circle': Circle,
-		'Transform': Transform,
-		'Container': Container,
-		'GameObject': GameObject,
-		'Component': Component,
-		'PhysicsEngine': PhysicsEngine,
-		'Scene': Scene,
-		'InputComponent': InputComponent,
-		'Button': Button,
-		'Animator': Animator,
-		'Animation': Animation,
-		'Camera': Camera,
-		'InputKey': InputKey,
-		'Input': Input,
-		'Draggable': Draggable,
-		'RigidBody': RigidBody,
-		'Collider': Collider,
-		'RectCollider': RectCollider,
-		'CircleCollider': CircleCollider,
-		'SpriteRenderer': SpriteRenderer,
-		'Resource': Resource,
-		'Loader': Loader,
-		'Sprite': Sprite,
-		'CircleSprite': CircleSprite,
-		'TextRenderer': TextRenderer,
-		'Font': Font,
-		'PhysicsCollider': PhysicsCollider,
-		'PhysicsEngine': PhysicsEngine,
-		'RaycastPoint': RaycastPoint,
-		'Raycast': Raycast,
-		'Parallax': Parallax,
-		'Util': Util,
-		'Game': Game,
-		'Player': Player,
-	}
+export {
+	Color,
+	Vector2,
+	Vector3,
+	Line,
+	Rect,
+	Circle,
+	Transform,
+	Container,
+	GameObject,
+	Component,
+	Scene,
+	InputComponent,
+	Button,
+	Animator,
+	Animation,
+	Camera,
+	InputKey,
+	Input,
+	Draggable,
+	RigidBody,
+	Collider,
+	RectCollider,
+	CircleCollider,
+	SpriteRenderer,
+	Resource,
+	ImageResource,
+	Loader,
+	Sprite,
+	CircleSprite,
+	TextRenderer,
+	Font,
+	PhysicsCollider,
+	PhysicsEngine,
+	RaycastPoint,
+	Raycast,
+	Parallax,
+	Util,
+	Game,
+	Player,
+	TextBox,
 }
