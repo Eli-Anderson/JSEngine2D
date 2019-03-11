@@ -71,6 +71,15 @@ class Color {
 	}
 
 	/**
+	 * Returns a copy of the Color.
+	 *
+	 * @return     {Color}  { The copy of the Color object }
+	 */
+	copy() {
+		return new Color(this);
+	}
+
+	/**
 	 * Returns a new Color object with (0, 0, 0, 1)
 	 * @returns {Color}
 	 */
@@ -689,6 +698,14 @@ class Rect extends Vector2 {
 		return this.y + this.height
 	}
 
+	get top() {
+		return this.y;
+	}
+
+	get left() {
+		return this.x;
+	}
+
 	get edges() {
 		return {
 			'top': 		new Line({	'pointA':new Vector2({'x':this.x, 'y':this.y}), 
@@ -765,13 +782,18 @@ class Transform extends Vector3 {
 	 * @param z {number}
 	 * @param width {number}
 	 * @param height {number}
+	 * @param center {Vector2} Used for centering the transform on a point at creation
+	 * 							(rather than having to later call gameObject.moveCenterTo(center))
 	 */
-	constructor({x=0, y=0, z=0, width=0, height=0}) {
+	constructor({x=0, y=0, z=0, width=0, height=0, center}) {
 		super({x, y, z});
 
 		this.width = width;
 		this.height = height;
-
+		if (center) {
+			this.x = center.x - (this.width / 2);
+			this.y = center.y - (this.height / 2);
+		}
 		this._rotation = 0;
 		this.scale = new Vector2({'x':1, 'y':1});
 		this._forward = Vector2.right;
@@ -926,6 +948,13 @@ class Container {
 			child._parent = this;
 			this.children.push(child);
 			this._addToFlattened(child);
+			if (this._sceneKey) {
+				/* 	if this Container is already in a scene, then the child
+				 	should call its _onAddedToScene method. This is otherwise called
+				 	when the parent Container is added to a scene
+				*/
+				child._onAddedToScene(this._sceneKey);
+			}
 
 			for (const grandchild of child.flattened) {
 				this._addToFlattened(grandchild)
@@ -1187,13 +1216,14 @@ class GameObject extends Container {
 		}
 		this.components.push(component);
 		component.addTo(this);
+		return component;
 	}
 
 	removeComponent(componentType) {
 		for (const component of this.components) {
 			if (component instanceof componentType) {
 				if (component instanceof InputComponent) {
-					Scene.getScene(this.sceneKey).removeInputComponent(component);
+					Scene.getScene(this._sceneKey).removeInputComponent(component);
 				}
 				component.remove();
 				this.components.splice(this.components.indexOf(component), 1);
@@ -1816,20 +1846,26 @@ class Camera extends Component {
 
 
 class InputKey {
-	constructor({name = ""}) {
+	constructor({name = "unnamed_key", upper}) {
 		this.name = name;
 		this.down = false;
 		this.up = false;
 		this.pressed = false;
 		this._wasPressed = false;
 		this.released = false;
+		this.upper = upper || name.toUpperCase();
 	}
 }
 
 class Input {
+	/* TODO: Fix keyboard input handling. Too many bugs happening now.
+			When a letter is pressed, held down, and then a modifier
+			is pressed and held, releasing the letter does not remove
+			the key from the downKeys array
+	*/
 	static handleInput(key="", inputType="none") {
 		if (Input.keys[key] === undefined) {
-			Input.keys[key] = new InputKey({key});
+			Input.keys[key] = new InputKey({name:key, upper:""});
 		}
 		if (inputType === Input.KEYDOWN) {
 			Input.keys[key].down = true;
@@ -1845,19 +1881,19 @@ class Input {
 				Input.keys[key].released = true;
 
 				delete Input.downKeys[key];
-			} else if (key.toUpperCase() in Input.downKeys) {
+			} else if (Input.keys[key].upper in Input.downKeys) {
 				// this is needed for the case where the the user holds
 				// a modifier (shift) and a letter, then releases shift
 				// before releasing the letter. This caused the uppercase
 				// key to never be 'released' or removed from the downKeys
 				// until pressed again.
-				Input.keys[key.toUpperCase()].up = true;
-				Input.keys[key.toUpperCase()].down = false;
-				Input.keys[key.toUpperCase()].pressed = false;
-				Input.keys[key.toUpperCase()]._wasPressed = false;
-				Input.keys[key.toUpperCase()].released = true;
+				Input.keys[Input.keys[key].upper].up = true;
+				Input.keys[Input.keys[key].upper].down = false;
+				Input.keys[Input.keys[key].upper].pressed = false;
+				Input.keys[Input.keys[key].upper]._wasPressed = false;
+				Input.keys[Input.keys[key].upper].released = true;
 
-				delete Input.downKeys[key.toUpperCase()];
+				delete Input.downKeys[Input.keys[key].upper];
 			}
 		}
 	}
@@ -1987,29 +2023,29 @@ Input.KEYDOWN = 'keydown';
 Input.KEYUP = 'keyup';
 Input.SPACE = ' ';
 Input.keys = {
-	'q': new InputKey({'name':'q'}), 'w': new InputKey({'name':'w'}), 'e': new InputKey({'name':'e'}),
-	'r': new InputKey({'name':'r'}), 't': new InputKey({'name':'t'}), 'y': new InputKey({'name':'y'}),
-	'u': new InputKey({'name':'u'}), 'i': new InputKey({'name':'i'}), 'o': new InputKey({'name':'o'}),
-	'p': new InputKey({'name':'p'}), 'a': new InputKey({'name':'a'}), 's': new InputKey({'name':'s'}),
-	'd': new InputKey({'name':'d'}), 'f': new InputKey({'name':'f'}), 'g': new InputKey({'name':'g'}),
-	'h': new InputKey({'name':'h'}), 'j': new InputKey({'name':'j'}), 'k': new InputKey({'name':'k'}),
-	'l': new InputKey({'name':'l'}), ';': new InputKey({'name':';'}), "'": new InputKey({'name':"'"}),
-	'z': new InputKey({'name':'z'}), 'x': new InputKey({'name':'x'}), 'c': new InputKey({'name':'c'}),
-	'v': new InputKey({'name':'v'}), 'b': new InputKey({'name':'b'}), 'n': new InputKey({'name':'n'}),
-	'm': new InputKey({'name':'m'}), ',': new InputKey({'name':','}), '.': new InputKey({'name':'.'}),
-	'/': new InputKey({'name':'/'}), '1': new InputKey({'name':'1'}), '2': new InputKey({'name':'2'}),
-	'3': new InputKey({'name':'3'}), '4': new InputKey({'name':'4'}), '5': new InputKey({'name':'5'}),
-	'6': new InputKey({'name':'6'}), '7': new InputKey({'name':'7'}), '8': new InputKey({'name':'8'}),
-	'9': new InputKey({'name':'9'}), '0': new InputKey({'name':'0'}), '-': new InputKey({'name':'-'}),
-	'=': new InputKey({'name':'='}), '`': new InputKey({'name':'`'}),
-	'Escape': new InputKey({'name':'Escape'}),
-	'Shift': new InputKey({'name':'Shift'}),
-	' ': new InputKey({'name':' '}),
-	'Enter': new InputKey({'name':'Enter'}),
-	'Meta': new InputKey({'name':'Meta'}),
-	'Alt': new InputKey({'name':'Alt'}),
-	'Tab': new InputKey({'name':'Tab'}),
-	'Backspace': new InputKey({'name':'Backspace'}),
+	'q': new InputKey({name:'q',upper:'Q'}), 'w': new InputKey({name:'w',upper:'W'}), 'e': new InputKey({name:'e',upper:'E'}),
+	'r': new InputKey({name:'r',upper:'R'}), 't': new InputKey({name:'t',upper:'T'}), 'y': new InputKey({name:'y',upper:'Y'}),
+	'u': new InputKey({name:'u',upper:'U'}), 'i': new InputKey({name:'i',upper:'I'}), 'o': new InputKey({name:'o',upper:'O'}),
+	'p': new InputKey({name:'p',upper:'P'}), 'a': new InputKey({name:'a',upper:'A'}), 's': new InputKey({name:'s',upper:'S'}),
+	'd': new InputKey({name:'d',upper:'D'}), 'f': new InputKey({name:'f',upper:'F'}), 'g': new InputKey({name:'g',upper:'G'}),
+	'h': new InputKey({name:'h',upper:'H'}), 'j': new InputKey({name:'j',upper:'J'}), 'k': new InputKey({name:'k',upper:'K'}),
+	'l': new InputKey({name:'l',upper:'L'}), ';': new InputKey({name:';',upper:':'}), "'": new InputKey({name:"'",upper:'"'}),
+	'z': new InputKey({name:'z',upper:'Z'}), 'x': new InputKey({name:'x',upper:'X'}), 'c': new InputKey({name:'c',upper:'C'}),
+	'v': new InputKey({name:'v',upper:'V'}), 'b': new InputKey({name:'b',upper:'B'}), 'n': new InputKey({name:'n',upper:'N'}),
+	'm': new InputKey({name:'m',upper:'M'}), ',': new InputKey({name:',',upper:'<'}), '.': new InputKey({name:'.',upper:'>'}),
+	'/': new InputKey({name:'/',upper:'?'}), '1': new InputKey({name:'1',upper:'!'}), '2': new InputKey({name:'2',upper:'@'}),
+	'3': new InputKey({name:'3',upper:'#'}), '4': new InputKey({name:'4',upper:'$'}), '5': new InputKey({name:'5',upper:'%'}),
+	'6': new InputKey({name:'6',upper:'^'}), '7': new InputKey({name:'7',upper:'&'}), '8': new InputKey({name:'8',upper:'*'}),
+	'9': new InputKey({name:'9',upper:'('}), '0': new InputKey({name:'0',upper:')'}), '-': new InputKey({name:'-',upper:'_'}),
+	'=': new InputKey({name:'=',upper:'+'}), '`': new InputKey({name:'`',upper:'~'}),
+	'Escape': new InputKey({name:'Escape',upper:'Escape'}),
+	'Shift': new InputKey({name:'Shift',upper:'Shift'}),
+	' ': new InputKey({name:' ',upper:' '}),
+	'Enter': new InputKey({name:'Enter',upper:'Enter'}),
+	'Meta': new InputKey({name:'Meta',upper:'Meta'}),
+	'Alt': new InputKey({name:'Alt',upper:'Alt'}),
+	'Tab': new InputKey({name:'Tab',upper:'Tab'}),
+	'Backspace': new InputKey({name:'Backspace',upper:'Backspace'}),
 };
 Input.downKeys = {}
 class Draggable extends Button {
@@ -2671,11 +2707,17 @@ class TextRenderer extends Component {
 			let lineIndex = 0;
 
 			let vAlign = 0;
-
-			if (this.font.vAlignment === Font.CENTERED) 		// set vAlign to the center of the gameObject
-				vAlign = (this.gameObject.transform.height / 2) + (this.font.size / 2);
-			else if (this.font.vAlignment === Font.BOTTOM) 	// set vAlign to the bottom of gameObject
-				vAlign = this.gameObject.transform.height;
+			if (this.font.vAlignment === Font.TOP) {
+				vAlign = this.font.size * 2 * this.font.sizeHeightRatio;
+			}
+			else if (this.font.vAlignment === Font.CENTERED) {
+				// set vAlign to the center of the gameObject
+				vAlign = (transform.height / 2) + (this.font.size * this.font.sizeHeightRatio);
+			}
+			else if (this.font.vAlignment === Font.BOTTOM) {
+				// set vAlign to the bottom of gameObject
+				vAlign = transform.height;
+			}
 
 			for (const line of this._splitLines) {
 				if (line[0].length > 2) {
@@ -2683,7 +2725,7 @@ class TextRenderer extends Component {
 					for (let i=0; i < args.length; i++) {
 						let arg = null;
 						try {
-							arg = Util.safeEval(args[i]); // TODO: Sanitize input, here
+							arg = Util.safeEval(args[i]); // TODO: Sanitize input?
 						} catch (e) {
 							// do nothing
 						}
@@ -2710,12 +2752,12 @@ class TextRenderer extends Component {
 					if (this.font.hAlignment === Font.CENTERED) {
 						// TODO: Can we move the measureText outside of the draw method?
 						hAlign -= context.measureText(splitText[lineIndex]).width / 2;
-						hAlign += this.gameObject.transform.width / 2;
+						hAlign += transform.width / 2;
 
 					} else if (this.font.hAlignment === Font.RIGHT) {
 
 						hAlign -= context.measureText(splitText[lineIndex]).width;
-						hAlign += this.gameObject.transform.width;
+						hAlign += transform.width;
 					}
 
 					context.fillText(line[1][index2], transform.x + widthInLine + hAlign, transform.y + vAlign + (lineIndex * this.font.size));
@@ -2741,6 +2783,18 @@ class Font {
 		this.color = color;
 		this.hAlignment = hAlignment;
 		this.vAlignment = vAlignment;
+		switch (name) {
+			// TODO: Figure out more font ratios
+			case "Aldrich": {
+				this.sizeHeightRatio = 1.76 / 5;
+			} break;
+			case "Courier": {
+				this.sizeHeightRatio = 1.48 / 5;
+			} break;
+			default: {
+				this.sizeHeightRatio = 1;
+			} break;
+		}
 	}
 
 	toString() {
@@ -2757,7 +2811,7 @@ Font.LEFT = 'left';
 Font.TOP = 'top';
 Font.BOTTOM = 'bottom';
 Font.default = new Font({
-	'name':'courier', 
+	name:'courier', 
 	'size':12, 
 	'color':Color.BLACK, 
 	'hAlignment':Font.LEFT, 
@@ -3667,7 +3721,7 @@ class TextBox extends GameObject {
 
 		this.addComponent(new TextRenderer({
 			'font':new Font({
-				'name':"Courier", 
+				name:"Courier", 
 				'size':transform.height, 
 				'color':color, 
 				'hAlignment':Font.LEFT, 
@@ -3697,7 +3751,7 @@ class TextBox extends GameObject {
 		this.maxLength = Math.floor(this.transform.width / (transform.height * (3/5)));
 
 
-		this.cursorIndex = 0;
+		this._cursorIndex = 0;
 		this.add(this.cursor);
 
 		this.getComponent(Button).onClick = ()=>{
@@ -3709,8 +3763,30 @@ class TextBox extends GameObject {
 		this.timeHoldMultRate = 0.6;
 	}
 
+	get cursorIndex() {
+		return this._cursorIndex;
+	}
+
+	incrementCursorIndex() {
+		this._cursorIndex++;
+		this.cursor.transform.x += this.transform.height * (3/5); // TODO: Yikes
+	}
+
+	decrementCursorIndex() {
+		this._cursorIndex--;
+		this.cursor.transform.x -= this.transform.height * (3/5); // TODO: Yikes
+	}
+
 	update(dt) {
 		let tr = this.getComponent(TextRenderer);
+
+		while (this.cursorIndex > tr.text.length) {
+			// in case the TextRenderer's text is modified from outside of
+			// this class, we need to make sure the cursor is bounded to
+			// the text length
+			this.decrementCursorIndex();
+		}
+
 		for (let key in Input.downKeys) {
 			if (Input.keys[key].pressed) {
 				this.timeHoldPerChar = 0.5;
@@ -3730,28 +3806,24 @@ class TextBox extends GameObject {
 							tr.text = 	tr.text.substring(0, this.cursorIndex) +
 										key +
 										tr.text.substring(this.cursorIndex, tr.text.length);
-							this.cursorIndex++;
-							this.cursor.transform.x += this.transform.height * (3/5); // TODO: Yikes
+							this.incrementCursorIndex();
 						}
 					}
 				} else {
 					if (Input.keys[key].down) {
 						if (key === 'Backspace') {
 							if (tr.text.length > 0 && this.cursorIndex > 0) {
-								this.cursorIndex--;
-								this.cursor.transform.x -= this.transform.height * (3/5); // TODO: Yikes
+								this.decrementCursorIndex();
 								tr.text = 	tr.text.substring(0, this.cursorIndex) + 
 											tr.text.substring(this.cursorIndex+1, tr.text.length);
 							}
 						} else if (key === 'ArrowLeft') {
 							if (this.cursorIndex > 0) {
-								this.cursorIndex--;
-								this.cursor.transform.x -= this.transform.height * (3/5); // TODO: Yikes
+								this.decrementCursorIndex();
 							}
 						} else if (key === 'ArrowRight') {
 							if (this.cursorIndex < tr.text.length) {
-								this.cursorIndex++;
-								this.cursor.transform.x += this.transform.height * (3/5); // TODO: Yikes
+								this.incrementCursorIndex();
 							}
 						}
 					}
