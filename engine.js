@@ -978,12 +978,6 @@ class Container {
 		}
 		this.children.splice(index, 1);
 		this._removeFromFlattened(child); // recursively removes from parents, as well
-		for (const grandchild of child.flattened) {
-			this._removeFromFlattened(grandchild); // recursively removes from parents, as well
-		}
-		if (this.parent !== null) {
-			this.parent._removeFromFlattened()
-		}
 		child._parent = null;
 		return true
 	}
@@ -1048,6 +1042,10 @@ class Container {
 	 * @param      {Container}  child   The child to be removed
 	 */
 	_removeFromFlattened(child) {
+		for (const grandchild of child.flattened) {
+			this.flattened.splice(this.flattened.indexOf(grandchild), 1);
+			this.parent._removeFromFlattened(grandchild); // recursively removes from parents, as well
+		}
 		this.flattened.splice(this.flattened.indexOf(child), 1);
 		if (this.parent != null && this.parent._removeFromFlattened) {
 			this.parent._removeFromFlattened(child);
@@ -1233,13 +1231,6 @@ class GameObject extends Container {
 		return false;
 	}
 
-	destroyComponents() {
-		for (let c of this.components) {
-			c.destroy();
-		}
-		this.components = [];
-	}
-
 	getComponent(componentType) {
 		for (const c of this.components) {
 			if (c instanceof componentType) {
@@ -1258,16 +1249,18 @@ class GameObject extends Container {
 		return results;
 	}
 
+	destroyComponents() {
+		for (let c of this.components) {
+			c.destroy();
+		}
+		this.components = [];
+	}
+
 	destroy() {
 		this.enabled = false;
 		if (this.parent) {
 			this.parent.remove(this);
 		}
-		this.destroyComponents();
-		for (let child of this.flattened) {
-			child.destroyComponents();
-		}
-		this.removeAll(); // FIX ME : Need to delete child GameObjects and their Components, not just remove them?
 	}
 
 	/**
@@ -1321,7 +1314,10 @@ class Component {
 	}
 
 	destroy() {
-		delete this.gameObject; // delete what should be the only reference to this object
+		if (this.gameObject) {
+			this.gameObject.removeComponent(this);
+			this.gameObject = null;
+		}
 		this.enabled = false; // disable just in case it isn't
 	}
 
