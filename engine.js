@@ -942,8 +942,10 @@ class Container {
 			console.error("Attempted to add a component as a child... Did you mean to use addComponent?");
 		} else if (child instanceof Container === false) {
 			console.error("You can only add objects of type Container to this container", child);
-		} else if (child === this || child.parent !== null) { // child is not this, child is an orphan
+		} else if (child.parent !== null) {
 			console.error("Child already has a parent", child);
+		} else if (child === this) {
+			console.error("Cannot add a GameObject to itself");
 		} else {
 			child._parent = this;
 			this.children.push(child);
@@ -987,16 +989,9 @@ class Container {
 	 * removed from this container as well as any parent's.
 	 */
 	removeAll() {
-		if (this.parent !== null && this.parent._removeFromFlattened) {
-			for (let child of this.flattened) {
-				this.parent._removeFromFlattened(child);
-			}
-			for (let child of this.children) {
-				child._parent = null;
-			}
+		for (let child of this.children.slice()) {
+			this.remove(child);
 		}
-		this._children = [];
-		this._flattened = [];
 	}
 
 	/**
