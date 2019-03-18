@@ -1310,7 +1310,7 @@ class Component {
 
 	destroy() {
 		if (this.gameObject) {
-			this.gameObject.removeComponent(this);
+			this.gameObject.removeComponent(this.constructor);
 			this.gameObject = null;
 		}
 		this.enabled = false; // disable just in case it isn't
