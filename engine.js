@@ -1215,9 +1215,6 @@ class GameObject extends Container {
 	removeComponent(componentType) {
 		for (const component of this.components) {
 			if (component instanceof componentType) {
-				if (component instanceof InputComponent) {
-					Scene.getScene(this._sceneKey).removeInputComponent(component);
-				}
 				component.remove();
 				this.components.splice(this.components.indexOf(component), 1);
 				return true;
@@ -1245,7 +1242,7 @@ class GameObject extends Container {
 	}
 
 	destroyComponents() {
-		for (let c of this.components) {
+		for (let c of this.components.slice()) {
 			c.destroy();
 		}
 		this.components = [];
@@ -1253,9 +1250,7 @@ class GameObject extends Container {
 
 	destroy() {
 		this.enabled = false;
-		for (let component of this.components) {
-			component.destroy();
-		}
+		this.destroyComponents();
 		if (this.parent) {
 			this.parent.remove(this);
 		}
@@ -1624,11 +1619,11 @@ class InputComponent extends Component {
 		super();
 	}
 
-	destroy() {
+	remove() {
 		if (this.gameObject) {
 			Scene.getScene(this.gameObject._sceneKey).removeInputComponent(this);
 		}
-		super.destroy()
+		super.remove()
 	}
 }
 
@@ -1830,11 +1825,11 @@ class Camera extends Component {
 		}
 	}
 
-	destroy() {
+	remove() {
 		if (this === Camera._mainCamera) {
 			Camera._mainCamera = null;
 		}
-		super.destroy()
+		super.remove()
 	}
 }
 
@@ -2114,15 +2109,6 @@ class RigidBody extends Component {
 		PhysicsEngine.rigidbodies.splice(PhysicsEngine.rigidbodies.indexOf(this), 1)
 	}
 
-	destroy() {
-		PhysicsEngine.rigidbodies.splice(PhysicsEngine.rigidbodies.indexOf(this), 1);
-		delete this._velocity;
-		delete this._acceleration;
-		delete this._friction;
-		delete this._maxSpeed;
-		super.destroy()
-	}
-
 	get velocity() {
 		return this._velocity
 	}
@@ -2230,7 +2216,7 @@ class Collider extends Component {
 		let fixedCollisions = [];
 		for (let i=0; i<this._collisions.length; i++) {
 			let coll = this._collisions[i];
-			if (typeof coll.colliderB.gameObject !== 'undefined' &&
+			if (coll.colliderB.gameObject !== null &&
 				coll.colliderB.gameObject.enabled && coll.colliderB.enabled &&
 				coll.colliderA.gameObject.enabled && coll.colliderA.enabled) {
 				fixedCollisions.push(coll);
@@ -2273,14 +2259,9 @@ class Collider extends Component {
 	}
 
 	remove() {
-		super.remove();
 		// remove from PhysicsEngine
 		PhysicsEngine.colliders.splice(PhysicsEngine.colliders.indexOf(this), 1)
-	}
-
-	destroy() {
-		PhysicsEngine.colliders.splice(PhysicsEngine.colliders.indexOf(this), 1);
-		super.destroy()
+		super.remove();
 	}
 
 	get bound() {
@@ -2344,7 +2325,7 @@ class Collider extends Component {
 	}
 
 	_onStay(collision) {
-
+		this.onStay(collision);
 	}
 }
 Collider.LAYER_ALL = 'all'
