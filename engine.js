@@ -1253,6 +1253,9 @@ class GameObject extends Container {
 
 	destroy() {
 		this.enabled = false;
+		for (let component of this.components) {
+			component.destroy();
+		}
 		if (this.parent) {
 			this.parent.remove(this);
 		}
