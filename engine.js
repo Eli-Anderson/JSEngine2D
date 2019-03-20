@@ -2264,7 +2264,8 @@ class Collider extends Component {
 	onAttach() {
 		if (this._bound === null) {
 			let t = this.gameObject.transform;
-			this._bound = new Rect({'x':t.x, 'y':t.y, 'width':t.width, 'height':t.height});
+			this._bound = new Rect({'x':0, 'y':0, 'width':t.width, 'height':t.height});
+			this._worldBound = new Rect({'x':t.x, 'y':t.y, 'width':t.width, 'height':t.height});
 		}
 	}
 
