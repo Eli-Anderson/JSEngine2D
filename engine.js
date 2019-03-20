@@ -1200,7 +1200,7 @@ class GameObject extends Container {
 	}
 
 
-	addComponent(component) {
+	attach(component) {
 		for (const c of this.components) {
 			if (c instanceof component.constructor) {
 				console.error("GameObject already has a component of type: " + component.constructor.name);
@@ -1208,7 +1208,7 @@ class GameObject extends Container {
 			}
 		}
 		this.components.push(component);
-		component.addTo(this);
+		component.attachTo(this);
 		return component;
 	}
 
@@ -1298,8 +1298,9 @@ class Component {
 		this.enabled = true;
 	}
 
-	addTo(gameObject) {
+	attachTo(gameObject) {
 		this.gameObject = gameObject;
+		this.onAttach();
 	}
 
 	remove() {
@@ -1313,6 +1314,8 @@ class Component {
 		}
 		this.enabled = false; // disable just in case it isn't
 	}
+
+	onAttach() {}
 
 	_update(dt) {
 		if (this.enabled === true && this.update !== undefined) {
@@ -1679,7 +1682,7 @@ class Button extends InputComponent {
 
 /**
  * Animator component that can be added to a GameObject with a
- * SpriteRenderer attached. Allows for an Animation to be used
+ * SpriteRenderer attachToed. Allows for an Animation to be used
  * which cycles through a set of Sprites based on a given
  * frame rate. Animations are added with addAnimation() and
  * can be removed with removeAnimation(). Set the current
@@ -2057,8 +2060,8 @@ class Draggable extends Button {
 		this._originalPosition = newPosition
 	}
 
-	addTo(gameObject) {
-		super.addTo(gameObject);
+	attachTo(gameObject) {
+		super.attachTo(gameObject);
 		this._originalPosition = new Vector2({'x':gameObject.transform.x, 'y':gameObject.transform.y})
 	}
 
@@ -2098,8 +2101,8 @@ class RigidBody extends Component {
 		this._isStatic = isStatic;
 	}
 
-	addTo(gameObject) {
-		super.addTo(gameObject);
+	attachTo(gameObject) {
+		super.attachTo(gameObject);
 		PhysicsEngine.rigidbodies.push(this)
 	}
 
@@ -2198,7 +2201,7 @@ class Collision {
 }
 
 class Collider extends Component {
-	constructor({bound, layer = Collider.LAYER_ALL}) {
+	constructor({bound=null, layer = Collider.LAYER_ALL}) {
 		super();
 		this._bound = bound;
 		this.worldBound = bound;
@@ -2253,9 +2256,16 @@ class Collider extends Component {
 		this._layer = layer;
 	}
 
-	addTo(gameObject) {
-		super.addTo(gameObject);
+	attachTo(gameObject) {
+		super.attachTo(gameObject);
 		PhysicsEngine.colliders.push(this)
+	}
+
+	onAttach() {
+		if (this._bound === null) {
+			let t = this.gameObject.transform;
+			this._bound = new Rect({'x':t.x, 'y':t.y, 'width':t.width, 'height':t.height});
+		}
 	}
 
 	remove() {
@@ -2335,8 +2345,8 @@ class RectCollider extends Collider {
 		super({bound, layer});
 	}
 
-	addTo(gameObject) {
-		super.addTo(gameObject);
+	attachTo(gameObject) {
+		super.attachTo(gameObject);
 		if (this._bound === undefined || this._bound === null) {
 			this._bound = this.gameObject.transform.rect;
 			this.worldBound = this.gameObject.transform.rect;
@@ -2349,8 +2359,8 @@ class CircleCollider extends Collider {
 		super({bound, layer});
 	}
 
-	addTo(gameObject) {
-		super.addTo(gameObject);
+	attachTo(gameObject) {
+		super.attachTo(gameObject);
 		if (this._bound === undefined || this._bound === null) {
 			let c = new Circle({
 				'x':gameObject.transform.x, 
@@ -3353,23 +3363,9 @@ class Parallax extends Component {
 	}
 }
 
-class Util {
-	static randRange(start, stop) {
-		return Math.floor(Math.random() * (stop - start) + start);
-	}
+class Random {
 	static range(start, stop) {
-		let arr = [];
-		for (let i=start; i<stop; i++) {
-			arr.push(i);
-		}
-		return arr;
-	}
-
-	static rad2Deg(radians) {
-		return radians * (180 / Math.PI);
-	}
-	static deg2Rad(degrees) {
-		return degrees * (Math.PI / 180);
+		return Math.floor(Math.random() * (stop - start) + start);
 	}
 	/**
 	 * Returns an array of n size, with contents picked randomly from the given array.
@@ -3383,7 +3379,7 @@ class Util {
 	 * @param      {number}  n       The number of elements
 	 * @return     {Array}  The sample
 	 */
-	static arrSample(array, n) {
+	static sample(array, n) {
 		let result = [];
 		if (array.length > 2) {
 			function randomGenerator(x) {
@@ -3409,13 +3405,30 @@ class Util {
 		return result;
 	}
 	//return random string of length n, from set string or entire alphabet
-	static randStr(n, str){
+	static string(n, str){
 		str = str || "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 		let result = "";
 		for(let i in Util.range(0, n)){
 			result += str.charAt(Util.randRange(0,str.length));
 		}
 		return result;
+	}
+}
+
+class Util {
+	static range(start, stop) {
+		let arr = [];
+		for (let i=start; i<stop; i++) {
+			arr.push(i);
+		}
+		return arr;
+	}
+
+	static rad2Deg(radians) {
+		return radians * (180 / Math.PI);
+	}
+	static deg2Rad(degrees) {
+		return degrees * (Math.PI / 180);
 	}
 
 	static safeEval(str) {
