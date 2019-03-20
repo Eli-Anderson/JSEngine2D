@@ -175,6 +175,7 @@ class Color {
 		let r = Util.randRange(0, 256);
 		let g = Util.randRange(0, 256);
 		let b = Util.randRange(0, 256);
+		let b = Random.range(0, 256);
 		let a = 1;
 		return new Color({r,g,b,a});
 	}
@@ -3408,8 +3409,8 @@ class Random {
 	static string(n, str){
 		str = str || "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 		let result = "";
-		for(let i in Util.range(0, n)){
-			result += str.charAt(Util.randRange(0,str.length));
+		for (let i = 0; i < n; i++) {
+			result += str.charAt(Random.range(0,str.length));
 		}
 		return result;
 	}
