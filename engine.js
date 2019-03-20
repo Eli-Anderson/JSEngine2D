@@ -172,9 +172,8 @@ class Color {
 	 * @returns {Color}
 	 */
 	static get random() {
-		let r = Util.randRange(0, 256);
-		let g = Util.randRange(0, 256);
-		let b = Util.randRange(0, 256);
+		let r = Random.range(0, 256);
+		let g = Random.range(0, 256);
 		let b = Random.range(0, 256);
 		let a = 1;
 		return new Color({r,g,b,a});
@@ -3400,7 +3399,7 @@ class Random {
 			}
 		} else {
 			for (let i=0; i<n; i++) {
-				result.push(array[Util.randRange(0, array.length)]);
+				result.push(array[Random.range(0, array.length)]);
 			}
 		}
 		return result;
