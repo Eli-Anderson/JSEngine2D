@@ -3897,6 +3897,7 @@ export {
 	RaycastPoint,
 	Raycast,
 	Parallax,
+	Random,
 	Util,
 	Game,
 	Player,
