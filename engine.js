@@ -2204,7 +2204,7 @@ class Collider extends Component {
 	constructor({bound=null, layer = Collider.LAYER_ALL}) {
 		super();
 		this._bound = bound;
-		this.worldBound = bound;
+		this._worldBound = bound;
 		this._layer = layer;
 		this._collisions = [];
 		this._colliders = [];
@@ -2277,11 +2277,11 @@ class Collider extends Component {
 
 	get bound() {
 		if (this.gameObject !== null) {
-			this.worldBound.x = 0;
-			this.worldBound.y = 0;
-			this.worldBound.x = this._bound.x + this.gameObject.transform.x;
-			this.worldBound.y = this._bound.y + this.gameObject.transform.y;
-			return this.worldBound;
+			this._worldBound.x = 0;
+			this._worldBound.y = 0;
+			this._worldBound.x = this._bound.x + this.gameObject.transform.x;
+			this._worldBound.y = this._bound.y + this.gameObject.transform.y;
+			return this._worldBound;
 		}
 		return this._bound
 	}
@@ -2350,7 +2350,7 @@ class RectCollider extends Collider {
 		super.attachTo(gameObject);
 		if (this._bound === undefined || this._bound === null) {
 			this._bound = this.gameObject.transform.rect;
-			this.worldBound = this.gameObject.transform.rect;
+			this._worldBound = this.gameObject.transform.rect;
 		}
 	}
 }
@@ -2371,7 +2371,7 @@ class CircleCollider extends Collider {
 			c.width = c.r;
 			c.height = c.r;
 			this._bound = c;
-			this.worldBound = c;
+			this._worldBound = c;
 		}
 	}
 }
