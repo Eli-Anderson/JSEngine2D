@@ -3928,8 +3928,8 @@ class Player {
         this.context = canvas.getContext("2d");
         this.canvas.style.position = "absolute";
 
-        canvas.width = size.x;
-        canvas.height = size.y;
+        this.canvas.width = size.x;
+        this.canvas.height = size.y;
 
         this.originalSize = size;
         this.aspectRatio = 2 / 3;
@@ -3948,8 +3948,8 @@ class Player {
 
     onResize(e) {
         //TODO: Replace the rescale() code with this?
-        let scaleX = window.innerWidth / canvas.width;
-        let scaleY = window.innerHeight / canvas.height;
+        let scaleX = window.innerWidth / this.canvas.width;
+        let scaleY = window.innerHeight / this.canvas.height;
 
         let scaleToFit = Math.min(scaleX, scaleY);
         let scaleToCover = Math.max(scaleX, scaleY);
