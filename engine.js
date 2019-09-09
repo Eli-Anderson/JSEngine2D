@@ -327,7 +327,7 @@ class Vector2 {
      * @returns {number}
      */
     distance(other) {
-        return this.sub(other).magnitude;
+        return Vector2.sub(this, other).magnitude;
     }
 
     /**
