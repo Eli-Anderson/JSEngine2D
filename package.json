@@ -1,0 +1,27 @@
+{
+  "name": "jsengine2d",
+  "version": "1.0.0",
+  "description": "Small 2D game engine for Javascript",
+  "main": "engine.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Eli-Anderson/JSEngine2D.git"
+  },
+  "keywords": [
+    "javascript",
+    "JSEngine2D",
+    "game-engine",
+    "game",
+    "engine",
+    "canvas"
+  ],
+  "author": "Eli Anderson",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Eli-Anderson/JSEngine2D/issues"
+  },
+  "homepage": "https://github.com/Eli-Anderson/JSEngine2D#readme"
+}
