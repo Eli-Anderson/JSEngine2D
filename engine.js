@@ -4294,7 +4294,7 @@ class TileMap extends GameObject {
     }
 }
 
-export {
+export default {
     Color,
     Vector2,
     Vector3,
