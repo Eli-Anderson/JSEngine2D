@@ -3925,7 +3925,7 @@ Game.instance = null;
 class Player {
     constructor({ canvas, size }) {
         this.canvas = canvas;
-        this.context = canvas.getContext("2d");
+        this.context = this.canvas.getContext("2d");
         this.canvas.style.position = "absolute";
 
         this.canvas.width = size.x;
@@ -3958,14 +3958,14 @@ class Player {
         this.canvas.style.transform = "scale(" + scaleToFit + ")";
 
         this.canvas.style.left = `${Math.round(
-            (window.innerWidth - canvas.width * scaleToFit) / 2
+            (window.innerWidth - this.canvas.width * scaleToFit) / 2
         )}px`;
         this.canvas.style.top = `${Math.round(
-            (window.innerHeight - canvas.height * scaleToFit) / 2
+            (window.innerHeight - this.canvas.height * scaleToFit) / 2
         )}px`;
 
-        this.size.x = Math.round(canvas.width * scaleToFit);
-        this.size.y = Math.round(canvas.height * scaleToFit);
+        this.size.x = Math.round(this.canvas.width * scaleToFit);
+        this.size.y = Math.round(this.canvas.height * scaleToFit);
 
         this._scale.x = scaleToFit;
         this._scale.y = scaleToFit;
